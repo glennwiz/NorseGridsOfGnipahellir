@@ -13,7 +13,7 @@ CELL_SIZE :: 5
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
-GridState :: [NUM_CELLS_Y][NUM_CELLS_X]bool
+GridState :: [NUM_CELLS_X][NUM_CELLS_Y]bool
 
 Game :: struct {
     perf_frequency: f64,
@@ -30,13 +30,13 @@ game := Game{}
 
 main :: proc() {
 
-     // Initialize the grid state
-     grid_state : GridState
-     for y := 0; y < len(grid_state); y += 1 {
-         for x := 0; x < len(grid_state[y]); x += 1 {
-             grid_state[y][x] = false // Initially, all cells are off
-         }
-     }
+    // Initialize the grid state
+    grid_state : GridState 
+    for x := 0; x < len(grid_state) ; x += 1 {
+       for y := 0; y < len(grid_state[x]); y += 1 {        
+            grid_state[x][y] = false // Initially, all cells are off
+        }
+    }
 
     assert(SDL.Init(SDL.INIT_VIDEO) == 0, SDL.GetErrorString())
     assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, SDL.GetErrorString())
@@ -97,27 +97,28 @@ main :: proc() {
             y = 32,//cast(i32) (NUM_CELLS_Y / 2),
             is_alive = true
         }
-                // Y  X
+                // X  Y
         grid_state[1][1] = true
-        grid_state[1][2] = true
-        grid_state[1][3] = true
-        grid_state[1][4] = true
+        grid_state[2][1] = true
+        grid_state[3][1] = true
+        grid_state[4][1] = true
 
         //  o
         // o o
         //  o
         // o o
-        grid_state[center.y][center.x] = true
-        grid_state[center.y + 1][center.x - 1] = true; grid_state[center.y + 1][center.x + 1] = true
-        grid_state[center.y + 2][center.x] = true
-        grid_state[center.y + 3][center.x - 1] = true; grid_state[center.y + 3][center.x + 1] = true
+        grid_state[center.x] [center.y] = true
+        grid_state[center.x - 1][center.y + 1] = true; grid_state[center.x + 1][center.y + 1] = true
+        grid_state[center.x][center.y + 2] = true
+        grid_state[center.x - 1][center.y + 3] = true; grid_state[center.x + 1][center.y + 3] = true
         
          
 
          // Drawing the grid based on the grid_state
-         for y := 0; y < NUM_CELLS_Y; y += 1 {
-            for x := 0; x < NUM_CELLS_X; x += 1 {
-                if grid_state[y][x] {
+         
+        for x := 0; x < NUM_CELLS_X; x += 1 {
+            for y := 0; y < NUM_CELLS_Y; y += 1 {
+                if grid_state[x][y] {
                     // Cell is on, draw it as a filled square
                     SDL.SetRenderDrawColor(game.renderer, 255, 255, 255, 255) // White color for "on" cells
                     posX := cast(i32)(x * CELL_SIZE)
@@ -129,6 +130,7 @@ main :: proc() {
                         w = CELL_SIZE,
                         h = CELL_SIZE
                     }
+
                     SDL.RenderFillRect(game.renderer, &rect)
                 }
             }
