@@ -20,6 +20,12 @@ Game :: struct {
     renderer: ^SDL.Renderer,
 }
 
+CellState :: struct {
+    x: i32,
+    y: i32,
+    is_alive: bool
+}
+
 game := Game{}
 
 main :: proc() {
@@ -59,7 +65,7 @@ main :: proc() {
     event : SDL.Event
 
     game_loop : for {
-        start = get_time()
+        start = get_time()       
 
         // Handle events
         if SDL.PollEvent(&event) {
@@ -77,9 +83,57 @@ main :: proc() {
         // Drawing gradient from black to green
         for x := 0; x < WINDOW_WIDTH; x += 1 {
             greenIntensity := u8(f32(x) / f32(WINDOW_WIDTH) * 255)
-            SDL.SetRenderDrawColor(game.renderer, 0, greenIntensity, 0, 255)
+            SDL.SetRenderDrawColor(game.renderer, 0, greenIntensity, 100, 255)
             SDL.RenderDrawLine(game.renderer, cast(i32) x, 0, cast(i32) x, cast(i32) WINDOW_HEIGHT)
         }
+
+        fmt.println("Drawing grid")
+        fmt.println("NUM_CELLS_X : ", NUM_CELLS_X)
+        fmt.println("NUM_CELLS_Y : ", NUM_CELLS_Y)
+
+        // Get the center cell
+        center := CellState{
+            x = 64,//cast(i32) (NUM_CELLS_X / 2),
+            y = 32,//cast(i32) (NUM_CELLS_Y / 2),
+            is_alive = true
+        }
+                // Y  X
+        grid_state[1][1] = true
+        grid_state[1][2] = true
+        grid_state[1][3] = true
+        grid_state[1][4] = true
+
+        //  o
+        // o o
+        //  o
+        // o o
+        grid_state[center.y][center.x] = true
+        grid_state[center.y + 1][center.x - 1] = true; grid_state[center.y + 1][center.x + 1] = true
+        grid_state[center.y + 2][center.x] = true
+        grid_state[center.y + 3][center.x - 1] = true; grid_state[center.y + 3][center.x + 1] = true
+        
+         
+
+         // Drawing the grid based on the grid_state
+         for y := 0; y < NUM_CELLS_Y; y += 1 {
+            for x := 0; x < NUM_CELLS_X; x += 1 {
+                if grid_state[y][x] {
+                    // Cell is on, draw it as a filled square
+                    SDL.SetRenderDrawColor(game.renderer, 255, 255, 255, 255) // White color for "on" cells
+                    posX := cast(i32)(x * CELL_SIZE)
+                    posY := cast(i32)(y * CELL_SIZE)
+                    
+                    rect := SDL.Rect{
+                        x = posX,
+                        y = posY,
+                        w = CELL_SIZE,
+                        h = CELL_SIZE
+                    }
+                    SDL.RenderFillRect(game.renderer, &rect)
+                }
+            }
+        }
+
 
         // Drawing black vertical lines spaced 5 pixels apart
         SDL.SetRenderDrawColor(game.renderer, 0, 0, 0, 255) // Set color to black
