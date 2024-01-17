@@ -48,7 +48,7 @@ main :: proc() {
         SDL.WINDOWPOS_CENTERED,
         WINDOW_WIDTH,
         WINDOW_HEIGHT,
-        WINDOW_FLAGS
+        WINDOW_FLAGS,
     )
     assert(window != nil, SDL.GetErrorString())
     defer SDL.DestroyWindow(window)
@@ -62,6 +62,8 @@ main :: proc() {
     end : f64
 	counter : u32 = 0
     event : SDL.Event
+
+    is_mouse_button_down : bool = false
 
     game_loop : for {
         start = get_time()       
@@ -77,28 +79,36 @@ main :: proc() {
                         break game_loop
                 }
             }
-        }
-
-         // Handle Mouse Clicks
-         if event.type == SDL.EventType.MOUSEBUTTONDOWN {
-            // Get mouse position
-            mouse_x, mouse_y : i32
-            SDL.GetMouseState(&mouse_x, &mouse_y)
-
-            // Calculate the grid cell coordinates from the mouse position
-            grid_x := mouse_x / CELL_SIZE
-            grid_y := mouse_y / CELL_SIZE
-
-            // Toggle the cell state
-            if grid_x < NUM_CELLS_X && grid_y < NUM_CELLS_Y {
-                grid_state[grid_x][grid_y] = !grid_state[grid_x][grid_y]
+            
+            // Handle Mouse Clicks    
+            if event.type == SDL.EventType.MOUSEBUTTONDOWN {
+                // Get mouse position
+                mouse_x, mouse_y : i32
+                SDL.GetMouseState(&mouse_x, &mouse_y)
+    
+                // Calculate the grid cell coordinates from the mouse position
+                grid_x := mouse_x / CELL_SIZE
+                grid_y := mouse_y / CELL_SIZE
+    
+                // Toggle the cell state
+                if grid_x < NUM_CELLS_X && grid_y < NUM_CELLS_Y {
+                    grid_state[grid_x][grid_y] = !grid_state[grid_x][grid_y]
+                }
             }
-        }
+
+            if event.type == SDL.EventType.MOUSEBUTTONUP {
+                is_mouse_button_down = false
+            }
+
+            if event.type == SDL.EventType.MOUSEMOTION {
+                is_mouse_button_down = true
+            }
+        }       
 
         // Drawing gradient from black to green
         for x := 0; x < WINDOW_WIDTH; x += 1 {
-            greenIntensity := u8(f32(x) / f32(WINDOW_WIDTH) * 255)
-            SDL.SetRenderDrawColor(game.renderer, 0, greenIntensity, 100, 255)
+            fade := u8(f32(x) / f32(WINDOW_WIDTH) * 60)
+            SDL.SetRenderDrawColor(game.renderer, fade, fade, fade, 255)
             SDL.RenderDrawLine(game.renderer, cast(i32) x, 0, cast(i32) x, cast(i32) WINDOW_HEIGHT)
         } 
 
@@ -140,7 +150,7 @@ main :: proc() {
             for y := 0; y < NUM_CELLS_Y; y += 1 {
                 if grid_state[x][y] {
                     // Cell is on, draw it as a filled square
-                    SDL.SetRenderDrawColor(game.renderer, 255, 255, 255, 255) // White color for "on" cells
+                    SDL.SetRenderDrawColor(game.renderer, 21, 147, 241, 255) // Light Blue
                     posX := cast(i32)(x * CELL_SIZE)
                     posY := cast(i32)(y * CELL_SIZE)
                     
@@ -178,6 +188,8 @@ main :: proc() {
 
 		if counter == 60
 		{
+            fmt.println("Mouse state : ", is_mouse_button_down)
+            fmt.println("---------------------------")
             fmt.println("Drawing grid")
             fmt.println("NUM_CELLS_X : ", NUM_CELLS_X)
             fmt.println("NUM_CELLS_Y : ", NUM_CELLS_Y)
