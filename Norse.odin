@@ -3,6 +3,12 @@ package gnipahellir
 import "core:fmt"
 import SDL "vendor:sdl2"
 import SDL_Image "vendor:sdl2/image"
+import SDL_TTF "vendor:sdl2/ttf"
+
+TITLE :: "Gnipahellir"
+TITLE_BAR_HEIGHT :: 30
+
+
 
 WINDOW_FLAGS :: SDL.WINDOW_SHOWN
 RENDER_FLAGS :: SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC
@@ -12,6 +18,9 @@ TARGET_DT :: 1000 / 60
 CELL_SIZE :: 5
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
+
+zoom_level := 1.0
+zoom_step := 0.1
 
 GridState :: [NUM_CELLS_X][NUM_CELLS_Y]bool
 grid_state : GridState 
@@ -31,6 +40,9 @@ game := Game{}
 main :: proc() {
 
     // Initialize the grid state
+    // Initialize the grid state
+    
+    // Initialize the grid state    
     
     for x := 0; x < len(grid_state) ; x += 1 {
        for y := 0; y < len(grid_state[x]); y += 1 {        
@@ -48,7 +60,8 @@ main :: proc() {
         SDL.WINDOWPOS_CENTERED,
         WINDOW_WIDTH,
         WINDOW_HEIGHT,
-        WINDOW_FLAGS,
+        WINDOW_FLAGS| SDL.WINDOW_BORDERLESS  // Window flags with borderless option
+        
     )
     assert(window != nil, SDL.GetErrorString())
     defer SDL.DestroyWindow(window)
@@ -77,6 +90,16 @@ main :: proc() {
                 #partial switch event.key.keysym.scancode {
                     case .ESCAPE:
                         break game_loop
+                    case .X:
+                        zoom_level += zoom_step
+                        if zoom_level > 2.0 { 
+                            zoom_level = 2.0
+                        }
+                    case .Z:
+                        zoom_level -= zoom_step
+                        if zoom_level < 0.5 { 
+                            zoom_level = 0.5
+                        }
                 }
             }
             
@@ -148,10 +171,10 @@ main :: proc() {
             for y := 0; y < NUM_CELLS_Y; y += 1 {
                 if grid_state[x][y] {
                     // Cell is on, draw it as a filled square
-                    SDL.SetRenderDrawColor(game.renderer, 21, 147, 241, 255) // Light Blue
-                    posX := cast(i32)(x * CELL_SIZE)
-                    posY := cast(i32)(y * CELL_SIZE)
-                    
+                    scaled_cell_size := cast(i32)(f32(CELL_SIZE) * cast(f32)zoom_level)
+                    posX := cast(i32)(f32(x * CELL_SIZE) * cast(f32)zoom_level)
+                    posY := cast(i32)(f32(y * CELL_SIZE) * cast(f32)zoom_level)
+                            
                     rect := SDL.Rect{
                         x = posX,
                         y = posY,
@@ -174,6 +197,7 @@ main :: proc() {
         for y := 0; y < WINDOW_HEIGHT; y += 5 {
             SDL.RenderDrawLine(game.renderer, 0, cast(i32) y, cast(i32) WINDOW_WIDTH, cast(i32) y)
         }
+
 
         // Present the renderer's content
         SDL.RenderPresent(game.renderer)
