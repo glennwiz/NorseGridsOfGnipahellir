@@ -14,7 +14,7 @@ NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
 GridState :: [NUM_CELLS_X][NUM_CELLS_Y]bool
-
+grid_state : GridState 
 Game :: struct {
     perf_frequency: f64,
     renderer: ^SDL.Renderer,
@@ -31,7 +31,7 @@ game := Game{}
 main :: proc() {
 
     // Initialize the grid state
-    grid_state : GridState 
+    
     for x := 0; x < len(grid_state) ; x += 1 {
        for y := 0; y < len(grid_state[x]); y += 1 {        
             grid_state[x][y] = false // Initially, all cells are off
@@ -83,6 +83,9 @@ main :: proc() {
             // Handle Mouse Clicks    
             if event.type == SDL.EventType.MOUSEBUTTONDOWN {
                 is_mouse_button_down = true
+                mouse_x, mouse_y : i32
+                SDL.GetMouseState(&mouse_x, &mouse_y)
+                handle_mouse_input(mouse_x, mouse_y)
             }
 
             if event.type == SDL.EventType.MOUSEBUTTONUP {
@@ -94,15 +97,8 @@ main :: proc() {
                     // Get mouse position
                     mouse_x, mouse_y : i32
                     SDL.GetMouseState(&mouse_x, &mouse_y)
+                    handle_mouse_input(mouse_x, mouse_y)
     
-                    // Calculate the grid cell coordinates from the mouse position
-                    grid_x := mouse_x / CELL_SIZE
-                    grid_y := mouse_y / CELL_SIZE
-    
-                    // Toggle the cell state
-                    if grid_x < NUM_CELLS_X && grid_y < NUM_CELLS_Y {
-                        grid_state[grid_x][grid_y] = !grid_state[grid_x][grid_y]
-                    }
                 }
             }
         }       
@@ -210,4 +206,13 @@ main :: proc() {
 
 get_time :: proc() -> f64 {
     return f64(SDL.GetPerformanceCounter()) * 1000 / game.perf_frequency
+}
+
+handle_mouse_input :: proc(mouse_x, mouse_y : i32) {
+    grid_x := mouse_x / CELL_SIZE
+    grid_y := mouse_y / CELL_SIZE
+
+    if grid_x < NUM_CELLS_X && grid_y < NUM_CELLS_Y {
+        grid_state[grid_x][grid_y] = !grid_state[grid_x][grid_y]
+    }    
 }
