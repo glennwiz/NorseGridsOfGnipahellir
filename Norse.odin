@@ -43,7 +43,7 @@ main :: proc() {
     defer SDL.Quit()
 
     window := SDL.CreateWindow(
-        "Odin Hello World!",
+        "Norse grids!",
         SDL.WINDOWPOS_CENTERED,
         SDL.WINDOWPOS_CENTERED,
         WINDOW_WIDTH,
@@ -60,8 +60,7 @@ main :: proc() {
     game.perf_frequency = f64(SDL.GetPerformanceFrequency())
     start : f64
     end : f64
-	counter :  u32  = 0
-
+	counter : u32 = 0
     event : SDL.Event
 
     game_loop : for {
@@ -80,21 +79,33 @@ main :: proc() {
             }
         }
 
+         // Handle Mouse Clicks
+         if event.type == SDL.EventType.MOUSEBUTTONDOWN {
+            // Get mouse position
+            mouse_x, mouse_y : i32
+            SDL.GetMouseState(&mouse_x, &mouse_y)
+
+            // Calculate the grid cell coordinates from the mouse position
+            grid_x := mouse_x / CELL_SIZE
+            grid_y := mouse_y / CELL_SIZE
+
+            // Toggle the cell state
+            if grid_x < NUM_CELLS_X && grid_y < NUM_CELLS_Y {
+                grid_state[grid_x][grid_y] = !grid_state[grid_x][grid_y]
+            }
+        }
+
         // Drawing gradient from black to green
         for x := 0; x < WINDOW_WIDTH; x += 1 {
             greenIntensity := u8(f32(x) / f32(WINDOW_WIDTH) * 255)
             SDL.SetRenderDrawColor(game.renderer, 0, greenIntensity, 100, 255)
             SDL.RenderDrawLine(game.renderer, cast(i32) x, 0, cast(i32) x, cast(i32) WINDOW_HEIGHT)
-        }
-
-        fmt.println("Drawing grid")
-        fmt.println("NUM_CELLS_X : ", NUM_CELLS_X)
-        fmt.println("NUM_CELLS_Y : ", NUM_CELLS_Y)
+        } 
 
         // Get the center cell
         center := CellState{
-            x = 64,//cast(i32) (NUM_CELLS_X / 2),
-            y = 32,//cast(i32) (NUM_CELLS_Y / 2),
+            x = 64,
+            y = 32,
             is_alive = true
         }
                 // X  Y
@@ -102,20 +113,29 @@ main :: proc() {
         grid_state[2][1] = true
         grid_state[3][1] = true
         grid_state[4][1] = true
+     
+        //     o
+        //    o o
+        //   o   o
+        //  o     o
+        //   o   o
+        //    o o
+        //     o
+        //    o o 
+        //   o   o
+        //  o     o      
+        grid_state[center.x - 10] [center.y - 10] = true 
+        grid_state[center.x - 11] [center.y - 9] = true; grid_state[center.x - 9] [center.y -9] = true
+        grid_state[center.x - 12] [center.y - 8] = true; grid_state[center.x - 8] [center.y - 8] = true
+        grid_state[center.x - 13] [center.y - 7] = true; grid_state[center.x - 7] [center.y - 7] = true
+        grid_state[center.x - 12] [center.y - 6] = true; grid_state[center.x - 8] [center.y - 6] = true
+        grid_state[center.x - 11] [center.y - 5] = true; grid_state[center.x - 9] [center.y - 5] = true
+        grid_state[center.x - 10] [center.y - 4] = true; 
+        grid_state[center.x - 11] [center.y - 3] = true; grid_state[center.x - 9] [center.y - 3] = true
+        grid_state[center.x - 12] [center.y - 2] = true; grid_state[center.x - 8] [center.y - 2] = true
+        grid_state[center.x - 13] [center.y - 1] = true; grid_state[center.x - 7] [center.y - 1] = true
 
-        //  o
-        // o o
-        //  o
-        // o o
-        grid_state[center.x] [center.y] = true
-        grid_state[center.x - 1][center.y + 1] = true; grid_state[center.x + 1][center.y + 1] = true
-        grid_state[center.x][center.y + 2] = true
-        grid_state[center.x - 1][center.y + 3] = true; grid_state[center.x + 1][center.y + 3] = true
-        
-         
-
-         // Drawing the grid based on the grid_state
-         
+        // Drawing the grid based on the grid_state         
         for x := 0; x < NUM_CELLS_X; x += 1 {
             for y := 0; y < NUM_CELLS_Y; y += 1 {
                 if grid_state[x][y] {
@@ -135,7 +155,6 @@ main :: proc() {
                 }
             }
         }
-
 
         // Drawing black vertical lines spaced 5 pixels apart
         SDL.SetRenderDrawColor(game.renderer, 0, 0, 0, 255) // Set color to black
@@ -159,19 +178,22 @@ main :: proc() {
 
 		if counter == 60
 		{
+            fmt.println("Drawing grid")
+            fmt.println("NUM_CELLS_X : ", NUM_CELLS_X)
+            fmt.println("NUM_CELLS_Y : ", NUM_CELLS_Y)
+            fmt.println("---------------------------")
 			fmt.println("Start : ", start)
 			fmt.println("End : ", end)
 			fmt.println("FPS : ", 1000 / (end - start))
-			counter = 0
+			counter = 0   
+            fmt.println("---------------------------")
+            continue game_loop         
 		}
-		else
-		{
-			counter += 1
-		}        
+		
+		counter += 1		        
     }
 }
 
 get_time :: proc() -> f64 {
     return f64(SDL.GetPerformanceCounter()) * 1000 / game.perf_frequency
 }
-
