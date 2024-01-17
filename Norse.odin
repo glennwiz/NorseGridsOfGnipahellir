@@ -82,18 +82,7 @@ main :: proc() {
             
             // Handle Mouse Clicks    
             if event.type == SDL.EventType.MOUSEBUTTONDOWN {
-                // Get mouse position
-                mouse_x, mouse_y : i32
-                SDL.GetMouseState(&mouse_x, &mouse_y)
-    
-                // Calculate the grid cell coordinates from the mouse position
-                grid_x := mouse_x / CELL_SIZE
-                grid_y := mouse_y / CELL_SIZE
-    
-                // Toggle the cell state
-                if grid_x < NUM_CELLS_X && grid_y < NUM_CELLS_Y {
-                    grid_state[grid_x][grid_y] = !grid_state[grid_x][grid_y]
-                }
+                is_mouse_button_down = true
             }
 
             if event.type == SDL.EventType.MOUSEBUTTONUP {
@@ -101,7 +90,20 @@ main :: proc() {
             }
 
             if event.type == SDL.EventType.MOUSEMOTION {
-                is_mouse_button_down = true
+                if is_mouse_button_down {
+                    // Get mouse position
+                    mouse_x, mouse_y : i32
+                    SDL.GetMouseState(&mouse_x, &mouse_y)
+    
+                    // Calculate the grid cell coordinates from the mouse position
+                    grid_x := mouse_x / CELL_SIZE
+                    grid_y := mouse_y / CELL_SIZE
+    
+                    // Toggle the cell state
+                    if grid_x < NUM_CELLS_X && grid_y < NUM_CELLS_Y {
+                        grid_state[grid_x][grid_y] = !grid_state[grid_x][grid_y]
+                    }
+                }
             }
         }       
 
