@@ -232,7 +232,14 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
     fmt.println("Mouse X : ", scaled_mouse_x)
     fmt.println("Mouse Y : ", scaled_mouse_y)
 
-    //print cells that the mouse is in
+    if(grid_state[scaled_mouse_x][scaled_mouse_y]) {
+        fmt.println("Cell is alive")
+    }
+    else {
+        fmt.println("Cell is dead")
+    }
+
+    
     for x :i32= 0; x < NUM_CELLS_X; x += 1 {
         for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
             if scaled_mouse_x >= x * CELL_SIZE && scaled_mouse_x < (x + 1) * CELL_SIZE && scaled_mouse_y >= y * CELL_SIZE && scaled_mouse_y < (y + 1) * CELL_SIZE {
@@ -240,7 +247,7 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
 
                 //print cell state
                 if grid_state[x][y] {
-                    fmt.println("Cell is alive")
+                    
                 }
                 else {
                     fmt.println("Cell is dead")
