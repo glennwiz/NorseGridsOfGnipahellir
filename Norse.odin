@@ -20,6 +20,9 @@ CELL_SIZE :: 1
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
+cellLife :bool
+isSet :bool
+
 GridState :: [NUM_CELLS_X][NUM_CELLS_Y]bool
 grid_state : GridState 
 Game :: struct {
@@ -108,6 +111,7 @@ main :: proc() {
 
             if event.type == SDL.EventType.MOUSEBUTTONUP {
                 is_mouse_button_down = false
+                isSet = false
             }
 
             if event.type == SDL.EventType.MOUSEMOTION {
@@ -232,41 +236,51 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
     fmt.println("Mouse X : ", scaled_mouse_x)
     fmt.println("Mouse Y : ", scaled_mouse_y)
 
-    if(grid_state[scaled_mouse_x][scaled_mouse_y]) {
+    //printe cell life and isSet
+    fmt.println("Cell life : ", cellLife)
+    fmt.println("Is set : ", isSet)
+
+    if grid_state[scaled_mouse_x][scaled_mouse_y] {
         fmt.println("Cell is alive")
     }
     else {
         fmt.println("Cell is dead")
+    }   
+
+    // Check if the mouse loc is false
+    if !grid_state[scaled_mouse_x][scaled_mouse_y] {
+        
+        if !isSet {
+            fmt.println("Cell is dead------------")
+            fmt.println("Cell Life : ", cellLife)
+            cellLife = true
+            isSet = true
+        }   
+        
+        if isSet{
+            grid_state[scaled_mouse_x][scaled_mouse_y] = cellLife
+        }  
+        return 
     }
 
-    
-    for x :i32= 0; x < NUM_CELLS_X; x += 1 {
-        for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
-            if scaled_mouse_x >= x * CELL_SIZE && scaled_mouse_x < (x + 1) * CELL_SIZE && scaled_mouse_y >= y * CELL_SIZE && scaled_mouse_y < (y + 1) * CELL_SIZE {
-                fmt.println("Mouse is in cell : ", x, y)
+    // Check if the mouse loc is true
+    if grid_state[scaled_mouse_x][scaled_mouse_y] {
 
-                //print cell state
-                if grid_state[x][y] {
-                    
-                }
-                else {
-                    fmt.println("Cell is dead")
-                }
-            }
-        }
+        if !isSet {
+            fmt.println("Cell is alive-----------")
+            fmt.println("Cell Life : ", cellLife)
+            cellLife = false
+            isSet = true
+        }   
+        
+        if isSet{
+            grid_state[scaled_mouse_x][scaled_mouse_y] = cellLife
+        }  
+
+        return
     }
 
-
-    if scaled_mouse_x < NUM_CELLS_X && scaled_mouse_y < NUM_CELLS_Y {
-        //if is_mouse_button_down we dont want to toggle the cell if its already alive
-        if!is_mouse_button_down {
-            grid_state[scaled_mouse_x][scaled_mouse_y] = true
-            return
-        }
-        else {
-            grid_state[scaled_mouse_x][scaled_mouse_y] = false
-        }
-
-        grid_state[scaled_mouse_x][scaled_mouse_y] = !grid_state[scaled_mouse_x][scaled_mouse_y]
+    if isSet{
+        grid_state[scaled_mouse_x][scaled_mouse_y] = cellLife
     }    
 }
