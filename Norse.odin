@@ -1,6 +1,7 @@
 package gnipahellir
 
 import "core:fmt"
+import "core:os"
 import SDL "vendor:sdl2"
 import SDL_Image "vendor:sdl2/image"
 import SDL_TTF "vendor:sdl2/ttf"
@@ -98,6 +99,10 @@ main :: proc() {
                         if zoom_level < 1 { 
                             zoom_level = 1
                         }
+                    case .A:
+                        //if A is pressed dump the grid state to file for debugging
+                        dump_grid_state()
+                        break game_loop
                 }
             }
             
@@ -227,6 +232,19 @@ main :: proc() {
 
 get_time :: proc() -> f64 {
     return f64(SDL.GetPerformanceCounter()) * 1000 / game.perf_frequency
+}
+
+dump_grid_state :: proc() {
+    {
+        //create printable grid array 
+
+
+
+        s := "Hello, World!\n"
+        bytes := transmute([]byte) s
+        ok := os.write_entire_file("path.txt", bytes)
+        assert(ok)
+    }   
 }
 
 handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) {
