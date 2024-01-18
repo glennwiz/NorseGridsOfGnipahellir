@@ -15,12 +15,15 @@ RENDER_FLAGS :: SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
 TARGET_DT :: 1000 / 60
 
-CELL_SIZE :: 5
+zoom_level :i32 = 5
+zoom_step :i32 = 1
+
+//TODO need to scale cells wiht zoom level
+
+CELL_SIZE :: 1
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
-zoom_level := 1.0
-zoom_step := 0.1
 
 GridState :: [NUM_CELLS_X][NUM_CELLS_Y]bool
 grid_state : GridState 
@@ -37,12 +40,7 @@ CellState :: struct {
 
 game := Game{}
 
-main :: proc() {
-
-    // Initialize the grid state
-    // Initialize the grid state
-    
-    // Initialize the grid state    
+main :: proc() { 
     
     for x := 0; x < len(grid_state) ; x += 1 {
        for y := 0; y < len(grid_state[x]); y += 1 {        
@@ -80,30 +78,32 @@ main :: proc() {
 
     game_loop : for {
         start = get_time()       
-
-        // Handle events
+        
+        // Input Handling
         if SDL.PollEvent(&event) {
             if event.type == SDL.EventType.QUIT {
                 break game_loop
             }
+
+            // Handle Keyboard Input
             if event.type == SDL.EventType.KEYDOWN {
                 #partial switch event.key.keysym.scancode {
                     case .ESCAPE:
                         break game_loop
                     case .X:
                         zoom_level += zoom_step
-                        if zoom_level > 2.0 { 
-                            zoom_level = 2.0
+                        if zoom_level > 10 { 
+                            zoom_level = 20
                         }
                     case .Z:
                         zoom_level -= zoom_step
-                        if zoom_level < 0.5 { 
-                            zoom_level = 0.5
+                        if zoom_level < 1 { 
+                            zoom_level = -5
                         }
                 }
             }
             
-            // Handle Mouse Clicks    
+            // Handle Mouse Input  
             if event.type == SDL.EventType.MOUSEBUTTONDOWN {
                 is_mouse_button_down = true
                 mouse_x, mouse_y : i32
@@ -117,7 +117,6 @@ main :: proc() {
 
             if event.type == SDL.EventType.MOUSEMOTION {
                 if is_mouse_button_down {
-                    // Get mouse position
                     mouse_x, mouse_y : i32
                     SDL.GetMouseState(&mouse_x, &mouse_y)
                     handle_mouse_input(mouse_x, mouse_y)
@@ -126,11 +125,11 @@ main :: proc() {
             }
         }       
 
-        // Drawing gradient from black to green
-        for x := 0; x < WINDOW_WIDTH; x += 1 {
+        // Drawing gradient from black to grey
+        for x :i32= 0; x < WINDOW_WIDTH; x += 1 {
             fade := u8(f32(x) / f32(WINDOW_WIDTH) * 60)
             SDL.SetRenderDrawColor(game.renderer, fade, fade, fade, 255)
-            SDL.RenderDrawLine(game.renderer, cast(i32) x, 0, cast(i32) x, cast(i32) WINDOW_HEIGHT)
+            SDL.RenderDrawLine(game.renderer, x, 0, x, WINDOW_HEIGHT)
         } 
 
         // Get the center cell
@@ -166,20 +165,20 @@ main :: proc() {
         grid_state[center.x - 12] [center.y - 2] = true; grid_state[center.x - 8] [center.y - 2] = true
         grid_state[center.x - 13] [center.y - 1] = true; grid_state[center.x - 7] [center.y - 1] = true
 
-        // Drawing the grid based on the grid_state         
-        for x := 0; x < NUM_CELLS_X; x += 1 {
-            for y := 0; y < NUM_CELLS_Y; y += 1 {
+        // Draw the cell at locations by the grid       
+        for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+            for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
                 if grid_state[x][y] {
                     // Cell is on, draw it as a filled square
-                    scaled_cell_size := cast(i32)(f32(CELL_SIZE) * cast(f32)zoom_level)
-                    posX := cast(i32)(f32(x * CELL_SIZE) * cast(f32)zoom_level)
-                    posY := cast(i32)(f32(y * CELL_SIZE) * cast(f32)zoom_level)
+                    scaled_cell_size := CELL_SIZE * zoom_level
+                    posX :i32= (x * CELL_SIZE) * zoom_level
+                    posY :i32= (y * CELL_SIZE) * zoom_level
                             
                     rect := SDL.Rect{
                         x = posX,
                         y = posY,
-                        w = CELL_SIZE,
-                        h = CELL_SIZE
+                        w = CELL_SIZE * zoom_level,
+                        h = CELL_SIZE * zoom_level,
                     }
 
                     SDL.RenderFillRect(game.renderer, &rect)
@@ -189,17 +188,16 @@ main :: proc() {
 
         // Drawing black vertical lines spaced 5 pixels apart
         SDL.SetRenderDrawColor(game.renderer, 0, 0, 0, 255) // Set color to black
-        for x := 0; x < WINDOW_WIDTH; x += 5 {
-            SDL.RenderDrawLine(game.renderer, cast(i32) x, 0, cast(i32) x, cast(i32) WINDOW_HEIGHT)
+        for x :i32= 0; x < WINDOW_WIDTH; x += 5 * zoom_level{
+            SDL.RenderDrawLine(game.renderer,  x, 0, x, WINDOW_HEIGHT)
         }
 
         // Drawing black horizontal lines spaced 5 pixels apart
-        for y := 0; y < WINDOW_HEIGHT; y += 5 {
+        for y :i32= 0; y < WINDOW_HEIGHT; y += 5 * zoom_level{
             SDL.RenderDrawLine(game.renderer, 0, cast(i32) y, cast(i32) WINDOW_WIDTH, cast(i32) y)
         }
 
-
-        // Present the renderer's content
+        // Present the renderer's conte
         SDL.RenderPresent(game.renderer)
 
         // Frame rate management
@@ -233,10 +231,10 @@ get_time :: proc() -> f64 {
 }
 
 handle_mouse_input :: proc(mouse_x, mouse_y : i32) {
-    grid_x := mouse_x / CELL_SIZE
-    grid_y := mouse_y / CELL_SIZE
+    scaled_mouse_x := mouse_x / zoom_level
+    scaled_mouse_y := mouse_y / zoom_level
 
-    if grid_x < NUM_CELLS_X && grid_y < NUM_CELLS_Y {
-        grid_state[grid_x][grid_y] = !grid_state[grid_x][grid_y]
+    if scaled_mouse_x < NUM_CELLS_X && scaled_mouse_y < NUM_CELLS_Y {
+        grid_state[scaled_mouse_x][scaled_mouse_y] = !grid_state[scaled_mouse_x][scaled_mouse_y]
     }    
 }
