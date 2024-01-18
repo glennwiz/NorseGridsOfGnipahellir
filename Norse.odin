@@ -8,8 +8,6 @@ import SDL_TTF "vendor:sdl2/ttf"
 TITLE :: "Gnipahellir"
 TITLE_BAR_HEIGHT :: 30
 
-
-
 WINDOW_FLAGS :: SDL.WINDOW_SHOWN
 RENDER_FLAGS :: SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
@@ -18,12 +16,9 @@ TARGET_DT :: 1000 / 60
 zoom_level :i32 = 5
 zoom_step :i32 = 1
 
-//TODO need to scale cells wiht zoom level
-
 CELL_SIZE :: 1
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
-
 
 GridState :: [NUM_CELLS_X][NUM_CELLS_Y]bool
 grid_state : GridState 
@@ -98,7 +93,7 @@ main :: proc() {
                     case .Z:
                         zoom_level -= zoom_step
                         if zoom_level < 1 { 
-                            zoom_level = -5
+                            zoom_level = 1
                         }
                 }
             }
@@ -108,7 +103,7 @@ main :: proc() {
                 is_mouse_button_down = true
                 mouse_x, mouse_y : i32
                 SDL.GetMouseState(&mouse_x, &mouse_y)
-                handle_mouse_input(mouse_x, mouse_y)
+                handle_mouse_input(mouse_x, mouse_y, false)
             }
 
             if event.type == SDL.EventType.MOUSEBUTTONUP {
@@ -119,7 +114,7 @@ main :: proc() {
                 if is_mouse_button_down {
                     mouse_x, mouse_y : i32
                     SDL.GetMouseState(&mouse_x, &mouse_y)
-                    handle_mouse_input(mouse_x, mouse_y)
+                    handle_mouse_input(mouse_x, mouse_y, true)
     
                 }
             }
@@ -194,7 +189,7 @@ main :: proc() {
 
         // Drawing black horizontal lines spaced 5 pixels apart
         for y :i32= 0; y < WINDOW_HEIGHT; y +=  zoom_level {
-            SDL.RenderDrawLine(game.renderer, 0, cast(i32) y, cast(i32) WINDOW_WIDTH, cast(i32) y)
+            SDL.RenderDrawLine(game.renderer, 0, y, WINDOW_WIDTH, y)
         }
 
         // Present the renderer's conte
@@ -206,7 +201,7 @@ main :: proc() {
             end = get_time()
         }
 
-		if counter == 60
+		if false//counter == 60
 		{
             fmt.println("Mouse state : ", is_mouse_button_down)
             fmt.println("---------------------------")
@@ -230,11 +225,41 @@ get_time :: proc() -> f64 {
     return f64(SDL.GetPerformanceCounter()) * 1000 / game.perf_frequency
 }
 
-handle_mouse_input :: proc(mouse_x, mouse_y : i32) {
+handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) {
     scaled_mouse_x := mouse_x / zoom_level
     scaled_mouse_y := mouse_y / zoom_level
 
+    fmt.println("Mouse X : ", scaled_mouse_x)
+    fmt.println("Mouse Y : ", scaled_mouse_y)
+
+    //print cells that the mouse is in
+    for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+        for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
+            if scaled_mouse_x >= x * CELL_SIZE && scaled_mouse_x < (x + 1) * CELL_SIZE && scaled_mouse_y >= y * CELL_SIZE && scaled_mouse_y < (y + 1) * CELL_SIZE {
+                fmt.println("Mouse is in cell : ", x, y)
+
+                //print cell state
+                if grid_state[x][y] {
+                    fmt.println("Cell is alive")
+                }
+                else {
+                    fmt.println("Cell is dead")
+                }
+            }
+        }
+    }
+
+
     if scaled_mouse_x < NUM_CELLS_X && scaled_mouse_y < NUM_CELLS_Y {
+        //if is_mouse_button_down we dont want to toggle the cell if its already alive
+        if!is_mouse_button_down {
+            grid_state[scaled_mouse_x][scaled_mouse_y] = true
+            return
+        }
+        else {
+            grid_state[scaled_mouse_x][scaled_mouse_y] = false
+        }
+
         grid_state[scaled_mouse_x][scaled_mouse_y] = !grid_state[scaled_mouse_x][scaled_mouse_y]
     }    
 }
