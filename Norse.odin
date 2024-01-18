@@ -188,12 +188,12 @@ main :: proc() {
 
         // Drawing black vertical lines spaced 5 pixels apart
         SDL.SetRenderDrawColor(game.renderer, 0, 0, 0, 255) // Set color to black
-        for x :i32= 0; x < WINDOW_WIDTH; x += 5 * zoom_level{
+        for x :i32= 0; x < WINDOW_WIDTH; x += zoom_level {
             SDL.RenderDrawLine(game.renderer,  x, 0, x, WINDOW_HEIGHT)
         }
 
         // Drawing black horizontal lines spaced 5 pixels apart
-        for y :i32= 0; y < WINDOW_HEIGHT; y += 5 * zoom_level{
+        for y :i32= 0; y < WINDOW_HEIGHT; y +=  zoom_level {
             SDL.RenderDrawLine(game.renderer, 0, cast(i32) y, cast(i32) WINDOW_WIDTH, cast(i32) y)
         }
 
