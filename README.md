@@ -1,7 +1,9 @@
 # Norse Grids Game Code Breakdown
 ![image](https://github.com/glennwiz/NorseGridsOfGnipahellir/assets/195927/7940b2de-0b9d-4707-a1d6-dfa36008548b)
 
-This code is for a simple grid-based game using SDL2 in Odin language. Let's go through it step-by-step.
+# Runes of Conway's Game of Life #
+
+This code is for a simple grid-based game using SDL2 in Odin language. Let's go through it in the world of gnipahellir.
 
 ## Package Import
 
@@ -9,178 +11,34 @@ This code is for a simple grid-based game using SDL2 in Odin language. Let's go 
 package gnipahellir
 ```
 
-- **gnipahellir:** The name of the package.
+**gnipahellir** 
 
-## Imports
+Let us unravel the essence of the "Norse Grids" game in Odin, casting aside the static veil to reveal the dynamic spirit beneath. Picture a canvas of the ancient Norse world, a grid where each cell throbs with life or lies dormant, awaiting the spark of existence.
 
-```odin
-import "core:fmt"
-import SDL "vendor:sdl2"
-import SDL_Image "vendor:sdl2/image"
-```
+The Heart of the Game: Grid and Cells
+As mentioned, your game world is a vast Norse canvas, where each cell in the GridState is a plot of land in this mythic landscape. These cells, defined in the CellState structure, hold the potential for life or stillness. Their fate, akin to the Norse belief in the intertwining of destiny, is influenced by the surrounding cells, creating a dynamic, ever-evolving tapestry of existence.
 
-- **core:fmt:** Standard formatting library.
-- **SDL:** SDL2 library for handling graphics.
-- **SDL_Image:** SDL2 extension for image handling.
+Breathing Life into the Norse World: Game Initialization
+In the beginning, the grid lies dormant, each cell in a state of slumber (initialized to false). But as the game commences, life begins to stir. The SDL libraries awaken, setting the stage for the unfolding saga. The window materializes, not just as a frame for the game but as a portal to this Norse world, devoid of borders to immerse the player fully.
 
-## Constants
+The Pulse of Time: Game Loop and Time Management
+In the heart of this digital realm, the game loop beats rhythmically, dictating the flow of time and events. Each iteration is a moment in the Norse cosmos, a blend of user interactions, the dance of life and death on the grid, and the meticulous management of time to ensure the smooth passage of moments (framed by TARGET_DT for consistent frame rate).
 
-```odin
-WINDOW_FLAGS :: SDL.WINDOW_SHOWN
-RENDER_FLAGS :: SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC
-WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
-TARGET_DT :: 1000 / 60
-CELL_SIZE :: 5
-NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
-NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
-```
+The Dance of Creation and Destruction: Event Handling and Cell Interaction
+Here, the player becomes a deity, shaping this Norse world. Through keystrokes and mouse movements, they breathe life into cells or consign them to oblivion. The grid responds to their will, each cell reflecting their choices - life springing forth with a click, or being extinguished with another.
 
-- **WINDOW_FLAGS:** Window display settings.
-- **RENDER_FLAGS:** Renderer options.
-- **WINDOW_WIDTH, WINDOW_HEIGHT:** Dimensions of the window.
-- **TARGET_DT:** Targeted time for each frame (60 frames per second).
-- **CELL_SIZE:** Size of each cell in the grid.
-- **NUM_CELLS_X, NUM_CELLS_Y:** Number of cells in the X and Y axis.
+The Visual Tapestry: Rendering the Grid
+As the tale unfolds, the renderer paints this world, cell by cell. Colors shift, from the darkest blacks to shades of grey, creating a visual feast that mirrors the Norse theme. The grid is not static; it's a living, breathing entity, with each cell a saga in itself, changing with the zoom level, giving the player the power of perspective - to see the grand tapestry or to focus on individual threads of life.The Heart of the Game: Grid and Cells
+As mentioned, your game world is a vast Norse canvas, where each cell in the GridState is a plot of land in this mythic landscape. These cells, defined in the CellState structure, hold the potential for life or stillness. Their fate, akin to the Norse belief in the intertwining of destiny, is influenced by the surrounding cells, creating a dynamic, ever-evolving tapestry of existence.
 
-## Data Structures
+Breathing Life into the Norse World: Game Initialization
+In the beginning, the grid lies dormant, each cell in a state of slumber (initialized to false). But as the game commences, life begins to stir. The SDL libraries awaken, setting the stage for the unfolding saga. The window materializes, not just as a frame for the game but as a portal to this Norse world, devoid of borders to immerse the player fully.
 
-```odin
-GridState :: [NUM_CELLS_X][NUM_CELLS_Y]bool
-```
+The Pulse of Time: Game Loop and Time Management
+In the heart of this digital realm, the game loop beats rhythmically, dictating the flow of time and events. Each iteration is a moment in the Norse cosmos, a blend of user interactions, the dance of life and death on the grid, and the meticulous management of time to ensure the smooth passage of moments (framed by TARGET_DT for consistent frame rate).
 
-- **GridState:** A two-dimensional boolean array representing the grid's state.
+The Dance of Creation and Destruction: Event Handling and Cell Interaction
+Here, the player becomes a deity, shaping this Norse world. Through keystrokes and mouse movements, they breathe life into cells or consign them to oblivion. The grid responds to their will, each cell reflecting their choices - life springing forth with a click, or being extinguished with another.
 
-```odin
-Game :: struct {
-    perf_frequency: f64,
-    renderer: ^SDL.Renderer,
-}
-```
-
-- **Game:** Struct containing performance frequency and renderer.
-
-```odin
-CellState :: struct {
-    x: i32,
-    y: i32,
-    is_alive: bool
-}
-```
-
-- **CellState:** Struct representing the state of a cell.
-
-## Initialization
-
-```odin
-game := Game{}
-```
-
-- Initializes an instance of the Game struct.
-
-## Main Procedure
-
-```odin
-main :: proc() {
-```
-
-- The main procedure where the program execution begins.
-
-### Initializing Grid State
-
-```odin
-grid_state : GridState 
-for x := 0; x < len(grid_state) ; x += 1 {
-   for y := 0; y < len(grid_state[x]); y += 1 {        
-        grid_state[x][y] = false
-    }
-}
-```
-
-- Initializes the grid state to false (off) for each cell.
-
-### SDL Initialization
-
-```odin
-assert(SDL.Init(SDL.INIT_VIDEO) == 0, SDL.GetErrorString())
-assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, SDL.GetErrorString())
-defer SDL.Quit()
-```
-
-- Initializes SDL for video and image handling, with error checking.
-
-### Creating Window and Renderer
-
-```odin
-window := SDL.CreateWindow(
-    "Norse grids!",
-    SDL.WINDOWPOS_CENTERED,
-    SDL.WINDOWPOS_CENTERED,
-    WINDOW_WIDTH,
-    WINDOW_HEIGHT,
-    WINDOW_FLAGS
-)
-assert(window != nil, SDL.GetErrorString())
-defer SDL.DestroyWindow(window)
-
-game.renderer = SDL.CreateRenderer(window, -1, RENDER_FLAGS)
-assert(game.renderer != nil, SDL.GetErrorString())
-defer SDL.DestroyRenderer(game.renderer)
-```
-
-- Creates an SDL window and renderer with error checking.
-
-### Game Loop Setup
-
-```odin
-game_loop : for {
-    // Game loop content here
-}
-```
-
-- The main game loop where all game logic and rendering happens.
-
-#### Getting Time for Frame Rate Management
-
-```odin
-start : f64
-end : f64
-counter : u32 = 0
-event : SDL.Event
-```
-
-- Variables to manage time and events in the game loop.
-
-#### Event Handling
-
-```odin
-if SDL.PollEvent(&event) {
-    // Event handling logic here
-}
-```
-
-- Handles SDL events like quitting the game or key presses.
-
-#### Drawing and Updating Grid
-
-- Various logic to handle drawing the grid, updating cell states, etc.
-
-### Frame Rate Management
-
-```odin
-end = get_time()
-for end - start < TARGET_DT {
-    end = get_time()
-}
-```
-
-- Manages the frame rate to stay around 60 FPS.
-
-## Auxiliary Functions
-
-```odin
-get_time :: proc() -> f64 {
-    return f64(SDL.GetPerformanceCounter()) * 1000 / game.perf_frequency
-}
-```
-
-- A helper function to get the current time for frame rate management.
+The Visual Tapestry: Rendering the Grid
+As the tale unfolds, the renderer paints this world, cell by cell. Colors shift, from the darkest blacks to shades of grey, creating a visual feast that mirrors the Norse theme. The grid is not static; it's a living, breathing entity, with each cell a saga in itself, changing with the zoom level, giving the player the power of perspective - to see the grand tapestry or to focus on individual threads of life.
