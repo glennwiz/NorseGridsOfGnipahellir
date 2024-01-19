@@ -1,6 +1,5 @@
 # Norse Grids Game Code Breakdown
-![image](https://github.com/glennwiz/NorseGridsOfGnipahellir/assets/195927/8d781a73-e2b2-4d77-ba6e-24f03d84c405)
-
+![image](https://github.com/glennwiz/NorseGridsOfGnipahellir/assets/195927/7940b2de-0b9d-4707-a1d6-dfa36008548b)
 
 This code is for a simple grid-based game using SDL2 in Odin language. Let's go through it step-by-step.
 
