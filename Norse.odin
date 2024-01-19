@@ -2,6 +2,11 @@ package gnipahellir
 
 import "core:fmt"
 import "core:os"
+import "core:mem"
+import "core:runtime"
+import "core:strconv"
+import "core:unicode/utf8"
+import "core:strings"
 import SDL "vendor:sdl2"
 import SDL_Image "vendor:sdl2/image"
 import SDL_TTF "vendor:sdl2/ttf"
@@ -12,9 +17,9 @@ TITLE_BAR_HEIGHT :: 30
 WINDOW_FLAGS :: SDL.WINDOW_SHOWN
 RENDER_FLAGS :: SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
-TARGET_DT :: 1000 / 60
+TARGET_DT :: 1000 / 100
 
-zoom_level :i32 = 5
+zoom_level :i32 = 20
 zoom_step :i32 = 1
 
 CELL_SIZE :: 1
@@ -24,6 +29,8 @@ NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 cellLife :bool
 isSet :bool
 
+isDebug := false
+ 
 GridState :: [NUM_CELLS_X][NUM_CELLS_Y]bool
 grid_state : GridState 
 Game :: struct {
@@ -57,9 +64,9 @@ main :: proc() {
         SDL.WINDOWPOS_CENTERED,
         WINDOW_WIDTH,
         WINDOW_HEIGHT,
-        WINDOW_FLAGS| SDL.WINDOW_BORDERLESS  // Window flags with borderless option
-        
+        WINDOW_FLAGS| SDL.WINDOW_BORDERLESS  // Window flags with borderless option        
     )
+
     assert(window != nil, SDL.GetErrorString())
     defer SDL.DestroyWindow(window)
 
@@ -123,8 +130,7 @@ main :: proc() {
                 if is_mouse_button_down {
                     mouse_x, mouse_y : i32
                     SDL.GetMouseState(&mouse_x, &mouse_y)
-                    handle_mouse_input(mouse_x, mouse_y, true)
-    
+                    handle_mouse_input(mouse_x, mouse_y, true)    
                 }
             }
         }       
@@ -135,13 +141,6 @@ main :: proc() {
             SDL.SetRenderDrawColor(game.renderer, fade, fade, fade, 255)
             SDL.RenderDrawLine(game.renderer, x, 0, x, WINDOW_HEIGHT)
         } 
-
-        // Get the center cell
-        center := CellState{
-            x = 64,
-            y = 32,
-            is_alive = true
-        }
                 // X  Y
         grid_state[1][1] = true
         grid_state[2][1] = true
@@ -149,7 +148,7 @@ main :: proc() {
         grid_state[4][1] = true
      
         //     o
-        //    o o
+        //    o oSSSS
         //   o   o
         //  o     o
         //   o   o
@@ -158,16 +157,31 @@ main :: proc() {
         //    o o 
         //   o   o
         //  o     o      
-        grid_state[center.x - 10] [center.y - 10] = true 
-        grid_state[center.x - 11] [center.y - 9] = true; grid_state[center.x - 9] [center.y -9] = true
-        grid_state[center.x - 12] [center.y - 8] = true; grid_state[center.x - 8] [center.y - 8] = true
-        grid_state[center.x - 13] [center.y - 7] = true; grid_state[center.x - 7] [center.y - 7] = true
-        grid_state[center.x - 12] [center.y - 6] = true; grid_state[center.x - 8] [center.y - 6] = true
-        grid_state[center.x - 11] [center.y - 5] = true; grid_state[center.x - 9] [center.y - 5] = true
-        grid_state[center.x - 10] [center.y - 4] = true; 
-        grid_state[center.x - 11] [center.y - 3] = true; grid_state[center.x - 9] [center.y - 3] = true
-        grid_state[center.x - 12] [center.y - 2] = true; grid_state[center.x - 8] [center.y - 2] = true
-        grid_state[center.x - 13] [center.y - 1] = true; grid_state[center.x - 7] [center.y - 1] = true
+        grid_state[16] [2] = true 
+        grid_state[15] [3] = true; grid_state[17] [3] = true
+        grid_state[14] [4] = true; grid_state[18] [4] = true
+        grid_state[13] [5] = true; grid_state[19] [5] = true
+        grid_state[14] [6] = true; grid_state[18] [6] = true
+        grid_state[15] [7] = true; grid_state[17] [7] = true
+        grid_state[16] [8] = true; 
+        grid_state[15] [9] = true; grid_state[17] [9] = true
+        grid_state[14] [10] = true; grid_state[18] [10] = true
+        grid_state[13] [11] = true; grid_state[19] [11] = true
+
+
+        // update the grid state by conways rules
+        for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+            for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
+                //Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+                //Any live cell with two or three live neighbours lives on to the next generation.
+                //Any live cell with more than three live neighbours dies, as if by overpopulation.
+                //Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+
+            }
+        }
+
+
+
 
         // Draw the cell at locations by the grid       
         for x :i32= 0; x < NUM_CELLS_X; x += 1 {
@@ -184,6 +198,9 @@ main :: proc() {
                         w = CELL_SIZE * zoom_level,
                         h = CELL_SIZE * zoom_level,
                     }
+                    
+                    SDL.SetRenderDrawColor(game.renderer, 100, 0, 0, 255)
+
 
                     SDL.RenderFillRect(game.renderer, &rect)
                 }
@@ -233,19 +250,11 @@ main :: proc() {
 get_time :: proc() -> f64 {
     return f64(SDL.GetPerformanceCounter()) * 1000 / game.perf_frequency
 }
-
-dump_grid_state :: proc() {
-    {
-        //create printable grid array 
-
-
-
-        s := "Hello, World!\n"
-        bytes := transmute([]byte) s
-        ok := os.write_entire_file("path.txt", bytes)
-        assert(ok)
-    }   
+str ::string;
+dump_grid_state :: proc() {      
+   
 }
+
 
 handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) {
     scaled_mouse_x := mouse_x / zoom_level
