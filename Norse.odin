@@ -14,8 +14,6 @@ import SDL_TTF "vendor:sdl2/ttf"
 TITLE :: "Gnipahellir"
 TITLE_BAR_HEIGHT :: 30
 
-
-
 WINDOW_FLAGS :: SDL.WINDOW_SHOWN
 RENDER_FLAGS :: SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
@@ -123,7 +121,7 @@ main :: proc() {
                         }   
                 }
             }
-            
+
             // Handle Mouse Input  
             if event.type == SDL.EventType.MOUSEBUTTONDOWN {
                 is_mouse_button_down = true
@@ -240,48 +238,45 @@ main :: proc() {
 		counter += 1
         if(!sim_running){ continue game_loop }
         
-        // we only need to update grid state 1 time per 60 frames   
+        //simulate the next generation
         if counter % sim_speed == 0 {
-            // update the grid state by conways rules
             for x :i32= 0; x < NUM_CELLS_X; x += 1 {
                 for y :i32= 0; y < NUM_CELLS_Y; y += 1 {  
-                    live_neighbours := 0            
-                    // Check each neighbour with bounds checking
-                    for nx := x-1; nx <= x+1; nx += 1 {
-                        for ny := y-1; ny <= y+1; ny += 1 {
-                            if nx >= 0 && ny >= 0 && nx < NUM_CELLS_X && ny < NUM_CELLS_Y && !(nx == x && ny == y) {
-                                if grid_state[nx][ny] {
-                                    live_neighbours += 1
-                                }
-                            }
-                        }
-                    }                    
-                    
                     /*  
                     Any live cell with fewer than two live neighbours dies, as if by underpopulation.
                     Any live cell with two or three live neighbours lives on to the next generation.
                     Any live cell with more than three live neighbours dies, as if by overpopulation.
                     Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction. 
-                    */
-
-                    if grid_state[x][y] {
-                        // Cell is alive
-                        if live_neighbours < 2 || live_neighbours > 3 {
-                            grid_state[x][y] = false // Dies
-                        } else {
-                            grid_state[x][y] = true // Stays alive
-                        }
-                    } else {
-                        // Cell is dead
-                        if live_neighbours == 3 {
-                            grid_state[x][y] = true // Becomes alive
-                        } else {
-                            grid_state[x][y] = false // Stays dead
-                        }
-                    }
+                    */         
+                    live_neighbours := count_live_neighbours(grid_state, x , y );
+                    grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);
+                        
                 }
             }
         }
+    }
+}
+
+count_live_neighbours := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool, x, y: i32) -> i32 {
+    live_neighbours :i32= 0
+    for nx := x-1; nx <= x+1; nx += 1 {
+        for ny := y-1; ny <= y+1; ny += 1 {
+            if nx >= 0 && ny >= 0 && nx < NUM_CELLS_X && ny < NUM_CELLS_Y && !(nx == x && ny == y) {
+                if grid_state[nx][ny] {
+                    live_neighbours += 1
+                }
+            }
+        }
+    }
+
+    return live_neighbours
+}
+
+update_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
+    if is_alive {
+        return live_neighbours == 2 || live_neighbours == 3;
+    } else {
+        return live_neighbours == 3;
     }
 }
 
