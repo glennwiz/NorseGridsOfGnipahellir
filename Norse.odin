@@ -162,18 +162,39 @@ main :: proc() {
         grid_state[14] [10] = true; grid_state[18] [10] = true
         grid_state[13] [11] = true; grid_state[19] [11] = true
 
+        // we only need to update grid state 1 time per 60 frames
 
-        // update the grid state by conways rules
-        for x :i32= 0; x < NUM_CELLS_X; x += 1 {
-            for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
-                //Any live cell with fewer than two live neighbours dies, as if by underpopulation.
-                //Any live cell with two or three live neighbours lives on to the next generation.
-                //Any live cell with more than three live neighbours dies, as if by overpopulation.
-                //Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 
+        if counter % 60 == 0 {
+            fmt.printf("Updating grid state")
+
+            //if(!running_sim) {}
+            // update the grid state by conways rules
+            for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+                for y :i32= 0; y < NUM_CELLS_Y; y += 1 {                  
+                    live_neighbours := 0
+            
+                    // Check each neighbour with bounds checking
+                    for nx := x-1; nx <= x+1; nx += 1 {
+                        for ny := y-1; ny <= y+1; ny += 1 {
+                            if nx >= 0 && ny >= 0 && nx < NUM_CELLS_X && ny < NUM_CELLS_Y && !(nx == x && ny == y) {
+                                if grid_state[nx][ny] {
+                                    live_neighbours += 1
+                                }
+                            }
+                        }
+                    }
+            
+                    // Apply the rules of Conway's Game of Life
+                    if live_neighbours < 2 || live_neighbours > 3 {
+                        grid_state[x][y] = false
+                    } else if live_neighbours == 3 {
+                        grid_state[x][y] = true
+                    }
+                }
             }
         }
-
+     
         // Draw the cell at locations by the grid       
         for x :i32= 0; x < NUM_CELLS_X; x += 1 {
             for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
@@ -240,7 +261,7 @@ main :: proc() {
 get_time :: proc() -> f64 {
     return f64(SDL.GetPerformanceCounter()) * 1000 / game.perf_frequency
 }
-str ::string;
+
 dump_grid_state :: proc() {      
    
 }
