@@ -167,8 +167,7 @@ main :: proc() {
         grid_state[14] [10] = true; grid_state[18] [10] = true
         grid_state[13] [11] = true; grid_state[19] [11] = true
 
-        // we only need to update grid state 1 time per 60 frames
-        
+
 
      
         // Draw the cell at locations by the grid       
@@ -214,7 +213,7 @@ main :: proc() {
             end = get_time()
         }
 
-		if false//counter == 60
+		if isDebug//counter == 60
 		{
             fmt.println("Mouse state : ", is_mouse_button_down)
             fmt.println("---------------------------")
@@ -230,19 +229,20 @@ main :: proc() {
             continue game_loop         
 		}
 		
-		counter += 1	
-        
-
+		counter += 1
         if(!running_sim){ continue game_loop }
         
+        // we only need to update grid state 1 time per 60 frames   
         if counter % 60 == 0 {
             fmt.println("Updating grid state")
 
             // update the grid state by conways rules
             for x :i32= 0; x < NUM_CELLS_X; x += 1 {
                 for y :i32= 0; y < NUM_CELLS_Y; y += 1 {                  
-                    live_neighbours := 0
-            
+                    
+                  
+
+                    live_neighbours := 0            
                     // Check each neighbour with bounds checking
                     for nx := x-1; nx <= x+1; nx += 1 {
                         for ny := y-1; ny <= y+1; ny += 1 {
@@ -253,12 +253,32 @@ main :: proc() {
                             }
                         }
                     }
-            
-                    // Apply the rules of Conway's Game of Life
-                    if live_neighbours < 2 || live_neighbours > 3 {
-                        grid_state[x][y] = false
-                    } else if live_neighbours == 3 {
-                        grid_state[x][y] = true
+
+                    if(live_neighbours > 0){ 
+                        fmt.println("Live neighbours : ", live_neighbours)
+                    }  
+                    
+                    /*  
+                    Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+                    Any live cell with two or three live neighbours lives on to the next generation.
+                    Any live cell with more than three live neighbours dies, as if by overpopulation.
+                    Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction. 
+                    */
+
+                    if grid_state[x][y] {
+                        // Cell is alive
+                        if live_neighbours < 2 || live_neighbours > 3 {
+                            grid_state[x][y] = false // Dies
+                        } else {
+                            grid_state[x][y] = true // Stays alive
+                        }
+                    } else {
+                        // Cell is dead
+                        if live_neighbours == 3 {
+                            grid_state[x][y] = true // Becomes alive
+                        } else {
+                            grid_state[x][y] = false // Stays dead
+                        }
                     }
                 }
             }
