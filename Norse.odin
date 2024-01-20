@@ -23,7 +23,9 @@ TARGET_DT :: 1000 / 100
 
 zoom_level :i32 = 20
 zoom_step :i32 = 1
-running_sim := false
+sim_running := false
+sim_speed :i32 = 60
+sim_speed_step :i32 = 10
 
 CELL_SIZE :: 1
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
@@ -74,7 +76,7 @@ main :: proc() {
     game.perf_frequency = f64(SDL.GetPerformanceFrequency())
     start : f64
     end : f64
-	counter : u32 = 0
+	counter : i32 = 0
     event : SDL.Event
 
     is_mouse_button_down : bool = false
@@ -108,7 +110,17 @@ main :: proc() {
                         dump_grid_state()
                         break game_loop
                     case .SPACE:
-                        running_sim = !running_sim
+                        sim_running = !sim_running
+                    case .LEFT:
+                        sim_speed += sim_speed_step
+                        if sim_speed > 60 { 
+                            sim_speed = 60
+                        }
+                    case .RIGHT:
+                        sim_speed -= sim_speed_step
+                        if sim_speed < 1 { 
+                            sim_speed = 1
+                        }   
                 }
             }
             
@@ -166,9 +178,6 @@ main :: proc() {
         grid_state[15] [9] = true; grid_state[17] [9] = true
         grid_state[14] [10] = true; grid_state[18] [10] = true
         grid_state[13] [11] = true; grid_state[19] [11] = true
-
-
-
      
         // Draw the cell at locations by the grid       
         for x :i32= 0; x < NUM_CELLS_X; x += 1 {
@@ -191,7 +200,6 @@ main :: proc() {
                 }
             }
         }
-
         
         // Drawing black vertical lines spaced 5 pixels apart
         SDL.SetRenderDrawColor(game.renderer, 0, 0, 0, 255) // Set color to black
@@ -230,18 +238,13 @@ main :: proc() {
 		}
 		
 		counter += 1
-        if(!running_sim){ continue game_loop }
+        if(!sim_running){ continue game_loop }
         
         // we only need to update grid state 1 time per 60 frames   
-        if counter % 60 == 0 {
-            fmt.println("Updating grid state")
-
+        if counter % sim_speed == 0 {
             // update the grid state by conways rules
             for x :i32= 0; x < NUM_CELLS_X; x += 1 {
-                for y :i32= 0; y < NUM_CELLS_Y; y += 1 {                  
-                    
-                  
-
+                for y :i32= 0; y < NUM_CELLS_Y; y += 1 {  
                     live_neighbours := 0            
                     // Check each neighbour with bounds checking
                     for nx := x-1; nx <= x+1; nx += 1 {
@@ -252,11 +255,7 @@ main :: proc() {
                                 }
                             }
                         }
-                    }
-
-                    if(live_neighbours > 0){ 
-                        fmt.println("Live neighbours : ", live_neighbours)
-                    }  
+                    }                    
                     
                     /*  
                     Any live cell with fewer than two live neighbours dies, as if by underpopulation.
