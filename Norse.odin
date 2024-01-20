@@ -47,12 +47,6 @@ CellState :: struct {
 game := Game{}
 
 main :: proc() { 
-    
-    for x := 0; x < len(grid_state) ; x += 1 {
-       for y := 0; y < len(grid_state[x]); y += 1 {        
-            grid_state[x][y] = false // Initially, all cells are off
-        }
-    }
 
     assert(SDL.Init(SDL.INIT_VIDEO) == 0, SDL.GetErrorString())
     assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, SDL.GetErrorString())
@@ -148,7 +142,7 @@ main :: proc() {
         grid_state[4][1] = true
      
         //     o
-        //    o oSSSS
+        //    o o
         //   o   o
         //  o     o
         //   o   o
@@ -180,9 +174,6 @@ main :: proc() {
             }
         }
 
-
-
-
         // Draw the cell at locations by the grid       
         for x :i32= 0; x < NUM_CELLS_X; x += 1 {
             for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
@@ -200,13 +191,12 @@ main :: proc() {
                     }
                     
                     SDL.SetRenderDrawColor(game.renderer, 100, 0, 0, 255)
-
-
                     SDL.RenderFillRect(game.renderer, &rect)
                 }
             }
         }
 
+        
         // Drawing black vertical lines spaced 5 pixels apart
         SDL.SetRenderDrawColor(game.renderer, 0, 0, 0, 255) // Set color to black
         for x :i32= 0; x < WINDOW_WIDTH; x += zoom_level {
