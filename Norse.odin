@@ -22,16 +22,21 @@ CELL_SIZE :: 1
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
+
 cellLife :bool
 isSet :bool
 isDebug := false
-grid_state : GRID_STATE 
+
 zoom_level :i32 = 20
 zoom_step :i32 = 1
 
-sim_running := false
+sim_running :bool
 sim_speed :i32 = 60
 sim_speed_step :i32 = 10
+
+grid_state : GRID_STATE 
+grid_state_history := make([dynamic]GRID_STATE, 5, 5)
+//TODO: implement history and fix sim bug
 
 Game :: struct {
     perf_frequency: f64,
@@ -165,17 +170,19 @@ main :: proc() {
         //    o o 
         //   o   o
         //  o     o      
-        grid_state[16] [2] = true 
-        grid_state[15] [3] = true; grid_state[17] [3] = true
-        grid_state[14] [4] = true; grid_state[18] [4] = true
-        grid_state[13] [5] = true; grid_state[19] [5] = true
-        grid_state[14] [6] = true; grid_state[18] [6] = true
-        grid_state[15] [7] = true; grid_state[17] [7] = true
-        grid_state[16] [8] = true; 
-        grid_state[15] [9] = true; grid_state[17] [9] = true
-        grid_state[14] [10] = true; grid_state[18] [10] = true
-        grid_state[13] [11] = true; grid_state[19] [11] = true
-     
+       //grid_state[16] [2] = true 
+       //grid_state[15] [3] = true; grid_state[17] [3] = true
+       //grid_state[14] [4] = true; grid_state[18] [4] = true
+       //grid_state[13] [5] = true; grid_state[19] [5] = true
+       //grid_state[14] [6] = true; grid_state[18] [6] = true
+       //grid_state[15] [7] = true; grid_state[17] [7] = true
+       //grid_state[16] [8] = true; 
+       //grid_state[15] [9] = true; grid_state[17] [9] = true
+       //grid_state[14] [10] = true; grid_state[18] [10] = true
+       //grid_state[13] [11] = true; grid_state[19] [11] = true     
+
+        append(&grid_state_history, grid_state)
+
         // Draw the cell at locations by the grid       
         for x :i32= 0; x < NUM_CELLS_X; x += 1 {
             for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
@@ -252,7 +259,9 @@ main :: proc() {
                 grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);
                     
             }
-        }    
+        }
+        
+        append(&grid_state_history, grid_state)
     }
 }
 
@@ -275,6 +284,11 @@ update_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
     if is_alive {
         return live_neighbours == 2 || live_neighbours == 3;
     } else {
+       
+        if live_neighbours == 3 {
+            fmt.println("Cell is born")
+            return true
+        }
         return live_neighbours == 3;
     }
 }
