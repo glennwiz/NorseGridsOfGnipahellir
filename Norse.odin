@@ -13,29 +13,26 @@ import SDL_TTF "vendor:sdl2/ttf"
 
 TITLE :: "Gnipahellir"
 TITLE_BAR_HEIGHT :: 30
-
 WINDOW_FLAGS :: SDL.WINDOW_SHOWN
 RENDER_FLAGS :: SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
 TARGET_DT :: 1000 / 100
-
-zoom_level :i32 = 20
-zoom_step :i32 = 1
-sim_running := false
-sim_speed :i32 = 60
-sim_speed_step :i32 = 10
-
+GRID_STATE :: [NUM_CELLS_X][NUM_CELLS_Y]bool
 CELL_SIZE :: 1
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
 cellLife :bool
 isSet :bool
-
 isDebug := false
- 
-GridState :: [NUM_CELLS_X][NUM_CELLS_Y]bool
-grid_state : GridState 
+grid_state : GRID_STATE 
+zoom_level :i32 = 20
+zoom_step :i32 = 1
+
+sim_running := false
+sim_speed :i32 = 60
+sim_speed_step :i32 = 10
+
 Game :: struct {
     perf_frequency: f64,
     renderer: ^SDL.Renderer,
@@ -118,7 +115,9 @@ main :: proc() {
                         sim_speed -= sim_speed_step
                         if sim_speed < 1 { 
                             sim_speed = 1
-                        }   
+                        } 
+                    case .D:
+                        isDebug = !isDebug  
                 }
             }
 
@@ -219,7 +218,7 @@ main :: proc() {
             end = get_time()
         }
 
-		if isDebug//counter == 60
+		if isDebug && counter % 60 == 0
 		{
             fmt.println("Mouse state : ", is_mouse_button_down)
             fmt.println("---------------------------")
@@ -231,29 +230,29 @@ main :: proc() {
 			fmt.println("End : ", end)
 			fmt.println("FPS : ", 1000 / (end - start))
 			counter = 0   
-            fmt.println("---------------------------")
-            continue game_loop         
+            fmt.println("---------------------------")                  
 		}
 		
 		counter += 1
         if(!sim_running){ continue game_loop }
         
+        if counter % sim_speed != 0  { continue game_loop }
+
+        
         //simulate the next generation
-        if counter % sim_speed == 0 {
-            for x :i32= 0; x < NUM_CELLS_X; x += 1 {
-                for y :i32= 0; y < NUM_CELLS_Y; y += 1 {  
-                    /*  
-                    Any live cell with fewer than two live neighbours dies, as if by underpopulation.
-                    Any live cell with two or three live neighbours lives on to the next generation.
-                    Any live cell with more than three live neighbours dies, as if by overpopulation.
-                    Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction. 
-                    */         
-                    live_neighbours := count_live_neighbours(grid_state, x , y );
-                    grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);
-                        
-                }
+        for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+            for y :i32= 0; y < NUM_CELLS_Y; y += 1 {  
+                /*  
+                Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+                Any live cell with two or three live neighbours lives on to the next generation.
+                Any live cell with more than three live neighbours dies, as if by overpopulation.
+                Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction. 
+                */         
+                live_neighbours := count_live_neighbours(grid_state, x , y );
+                grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);
+                    
             }
-        }
+        }    
     }
 }
 
