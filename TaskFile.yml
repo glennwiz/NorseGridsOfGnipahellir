@@ -6,6 +6,7 @@ tasks:
       - echo 'Building Odin'
       - odin run .
       - cat log.txt
+      - rm log.txt
     #silent: true    
   hello:
     cmds:

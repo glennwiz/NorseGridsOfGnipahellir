@@ -22,6 +22,7 @@ GRID_STATE :: [NUM_CELLS_X][NUM_CELLS_Y]bool
 CELL_SIZE :: 1
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
+PERF_COUNT :u64= 0
 
 cellLife :bool
 isSet :bool
@@ -269,10 +270,6 @@ main :: proc() {
         //grid_state[10] [12] = true; 
         //grid_state[10] [13] = true; 
 
-
-  
-
-        
      
         //     o
         //    o o
@@ -333,60 +330,71 @@ main :: proc() {
             SDL.RenderDrawLine(game.renderer, 0, y, WINDOW_WIDTH, y)       
         }
 
-        // Present the renderer's conte
         SDL.RenderPresent(game.renderer)
 
-        // Frame rate management
-        end = get_time()
-        for end - start < TARGET_DT {
-            end = get_time()
-        }
+       
 
-		if currentLogLevel == LogLevel.DEBUG && counter % 60 == 0	{
-            perf_frequency := game.perf_frequency; // The frequency of the performance counter
-
-            duration_ticks := end - start; // Duration in ticks
-            fmt.println("Duration in ticks: ", duration_ticks)           
-            duration_seconds := duration_ticks / perf_frequency; // Convert ticks to seconds  
-            fmt.println("Duration in seconds: ", duration_seconds)      
-            minutes := i64(duration_seconds / 60)
-            seconds := i64(duration_seconds) % 60
-            milliseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000)
-            microseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000000)
-            nanoseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000000000)
-            logger(fmt.aprintf("Duration: ", milliseconds, " milliseconds", microseconds, " microseconds", nanoseconds," nanoseconds"))          
-        
-            logger(fmt.aprintf("FPS: ", 1000 / duration_seconds, " FPS")) 
-            //print dead and alive cells and log them
-            logger(fmt.aprintf("Alive cells: ", cellCount))
-			counter = 0 
-                      
-		}
-		
-		counter += 1
-
-        // we can have thees in a || or check but it's reads better this way
-        if !sim_running { continue game_loop }        
-        if counter % sim_speed != 0  { continue game_loop }
-        
-        //simulate the next generation
-        for x :i32= 0; x < NUM_CELLS_X; x += 1 {
-            for y :i32= 0; y < NUM_CELLS_Y; y += 1 {  
-                /*  
-                Any live cell with fewer than two live neighbours dies, as if by underpopulation.
-                Any live cell with two or three live neighbours lives on to the next generation.
-                Any live cell with more than three live neighbours dies, as if by overpopulation.
-                Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction. 
-                */         
-                live_neighbours := count_live_neighbours(grid_state, x , y );
-                grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);
-                    
+        if sim_running && counter % sim_speed == 0 {
+                //simulate the next generation
+            for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+                for y :i32= 0; y < NUM_CELLS_Y; y += 1 {  
+                    /*  
+                    Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+                    Any live cell with two or three live neighbours lives on to the next generation.
+                    Any live cell with more than three live neighbours dies, as if by overpopulation.
+                    Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction. 
+                    */         
+                    live_neighbours := count_live_neighbours(grid_state, x , y );
+                    grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);                    
+                }
             }
+            
+            append(&grid_state_history, grid_state)
         }
-        
-        append(&grid_state_history, grid_state)
+
+         // Frame rate management
+         end = get_time()
+         for end - start < TARGET_DT {
+             end = get_time()
+         }
+ 
+         if currentLogLevel == LogLevel.DEBUG && counter % 60 == 0	{
+             perf_frequency := game.perf_frequency; // The frequency of the performance counter           
+             duration_ticks := end - start; // Duration in ticks         
+             duration_seconds := duration_ticks / perf_frequency; // Convert ticks to seconds  
+             logger(fmt.aprintf("Duration in seconds: ", duration_seconds))      
+             minutes := i64(duration_seconds / 60)
+             seconds := i64(duration_seconds) % 60
+             milliseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000)
+             microseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000000)
+             nanoseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000000000)
+             logger(fmt.aprintf("Duration: ", milliseconds, " milliseconds", microseconds, " microseconds", nanoseconds," nanoseconds"))          
+            
+             //print dead and alive cells and log them
+             logger(fmt.aprintf("Alive cells: ",count_alive_cells(grid_state) ))
+
+             //log how much computation time was used per cell
+             
+             counter = 0                       
+         }
+         
+         counter += 1
+      
     }
 }
+
+count_alive_cells := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool) -> i32 {
+    alive_cells :i32= 0
+    for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+        for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
+            if grid_state[x][y] {
+                alive_cells += 1
+            }
+        }
+    }
+    return alive_cells
+}
+
 
 count_live_neighbours := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool, x, y: i32) -> i32 {
     live_neighbours :i32= 0
@@ -407,15 +415,14 @@ update_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
     if is_alive {
         
         if live_neighbours < 2 || live_neighbours > 3 {
-            cellCount -= 1
+            
             return false
         }
-        cellCount += 1
         return true
     } else {
        
         if live_neighbours == 3 {
-            cellCount += 1
+
             return true
         }       
         return false
@@ -423,7 +430,8 @@ update_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
 }
 
 get_time :: proc() -> f64 {
-    return f64(SDL.GetPerformanceCounter()) * 1000 / game.perf_frequency
+    PERF_COUNT = SDL.GetPerformanceCounter()   
+    return f64(PERF_COUNT) * 1000 / game.perf_frequency
 }
 
 dump_grid_state :: proc() {      
@@ -433,13 +441,6 @@ dump_grid_state :: proc() {
 handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) {
     scaled_mouse_x := mouse_x / zoom_level
     scaled_mouse_y := mouse_y / zoom_level
-
-    fmt.println("Mouse X : ", scaled_mouse_x)
-    fmt.println("Mouse Y : ", scaled_mouse_y)
-
-    //printe cell life and isSet
-    fmt.println("Cell life : ", cellLife)
-    fmt.println("Is set : ", isSet)
 
     if grid_state[scaled_mouse_x][scaled_mouse_y] {
         fmt.println("Cell is alive")
