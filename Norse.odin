@@ -54,6 +54,7 @@ game := Game{}
 
 main :: proc() { 
 
+    logger("Starting Norse Grids!")
     assert(SDL.Init(SDL.INIT_VIDEO) == 0, SDL.GetErrorString())
     assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, SDL.GetErrorString())
     defer SDL.Quit()
@@ -230,9 +231,7 @@ main :: proc() {
             end = get_time()
         }
 
-		if isDebug && counter % 60 == 0
-		{
-
+		if isDebug && counter % 60 == 0	{
             perf_frequency := game.perf_frequency; // The frequency of the performance counter
 
             duration_ticks := end - start; // Duration in ticks
@@ -246,7 +245,7 @@ main :: proc() {
             
             fmt.printf("Duration: %02d:%02d.%03d\n", minutes, seconds, milliseconds);
 
-
+            logger("dsdfsdfsdf")
 
             fmt.println("---------------------------")
             fmt.println("Mouse state : ", is_mouse_button_down)
@@ -388,4 +387,22 @@ draw_batch :: proc(x, y, width, height: i32, renderer: ^SDL.Renderer) {
     }
     SDL.SetRenderDrawColor(renderer, 100, 0, 0, 255) 
     SDL.RenderFillRect(renderer, &rect)
+}
+
+logger :: proc(msg: string) {
+    fmt.println(msg)
+    // Open or create the log file for appending
+    file, err := os.open("log.txt", os.O_WRONLY | os.O_APPEND | os.O_CREATE, 0666) // Adjust the mode flags and permissions as needed
+    if err != os.ERROR_NONE {
+        fmt.eprintln("Failed to open log file:", err)
+        os.exit(1)
+    }
+    defer os.close(file)
+
+    // Attempt to get the current time
+    current_time := time.now()
+ 
+    // Write the message to the log file along with the current time
+    fmt.fprintf(file, "%s: %s\n", current_time, msg)
+    
 }
