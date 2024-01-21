@@ -24,9 +24,9 @@ NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 PERF_COUNT :u64= 0
 
-cellLife :bool
-isSet :bool
-cellCount :i32 = 0
+cell_life :bool
+is_set :bool
+cell_count :i32 = 0
 
 zoom_level :i32 = 20
 zoom_step :i32 = 1
@@ -46,7 +46,7 @@ LogLevel :: enum {
     WARNING,
     ERROR,
 } 
-currentLogLevel := LogLevel.INFO
+current_log_level := LogLevel.INFO
 
 Game :: struct {
     perf_frequency: f64,
@@ -190,7 +190,7 @@ main :: proc() {
                             sim_speed = 1
                         } 
                     case .D:
-                        currentLogLevel = LogLevel.DEBUG
+                        current_log_level = LogLevel.DEBUG
                 }
             }
 
@@ -204,7 +204,7 @@ main :: proc() {
 
             if event.type == SDL.EventType.MOUSEBUTTONUP {
                 is_mouse_button_down = false
-                isSet = false
+                is_set = false
             }
 
             if event.type == SDL.EventType.MOUSEMOTION {
@@ -358,7 +358,7 @@ main :: proc() {
              end = get_time()
          }
  
-         if currentLogLevel == LogLevel.DEBUG && counter % 60 == 0	{
+         if current_log_level == LogLevel.DEBUG && counter % 60 == 0	{
              perf_frequency := game.perf_frequency; // The frequency of the performance counter           
              duration_ticks := end - start; // Duration in ticks         
              duration_seconds := duration_ticks / perf_frequency; // Convert ticks to seconds  
@@ -370,16 +370,20 @@ main :: proc() {
              nanoseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000000000)
              logger(fmt.aprintf("Duration: ", milliseconds, " milliseconds", microseconds, " microseconds", nanoseconds," nanoseconds"))          
             
+             alive_cells := count_alive_cells(grid_state) 
+
              //print dead and alive cells and log them
-             logger(fmt.aprintf("Alive cells: ",count_alive_cells(grid_state) ))
+             logger(fmt.aprintf("Alive cells: ",alive_cells ))
 
              //log how much computation time was used per cell
-             
+             vec :f64= 0
+             vec = f64(alive_cells) / f64(nanoseconds) 
+             logger(fmt.aprintf("Average computation time per cell: ", vec, " nanoseconds"))
+
              counter = 0                       
          }
          
-         counter += 1
-      
+         counter += 1      
     }
 }
 
@@ -452,15 +456,15 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
     // Check if the mouse loc is false
     if !grid_state[scaled_mouse_x][scaled_mouse_y] {
         
-        if !isSet {
+        if !is_set {
             fmt.println("Cell is dead------------")
-            fmt.println("Cell Life : ", cellLife)
-            cellLife = true
-            isSet = true
+            fmt.println("Cell Life : ", cell_life)
+            cell_life = true
+            is_set = true
         }   
         
-        if isSet{
-            grid_state[scaled_mouse_x][scaled_mouse_y] = cellLife
+        if is_set{
+            grid_state[scaled_mouse_x][scaled_mouse_y] = cell_life
         }  
         return 
     }
@@ -468,22 +472,22 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
     // Check if the mouse loc is true
     if grid_state[scaled_mouse_x][scaled_mouse_y] {
 
-        if !isSet {
+        if !is_set {
             fmt.println("Cell is alive-----------")
-            fmt.println("Cell Life : ", cellLife)
-            cellLife = false
-            isSet = true
+            fmt.println("Cell Life : ", cell_life)
+            cell_life = false
+            is_set = true
         }   
         
-        if isSet{
-            grid_state[scaled_mouse_x][scaled_mouse_y] = cellLife
+        if is_set{
+            grid_state[scaled_mouse_x][scaled_mouse_y] = cell_life
         }  
 
         return
     }
 
-    if isSet{
-        grid_state[scaled_mouse_x][scaled_mouse_y] = cellLife
+    if is_set{
+        grid_state[scaled_mouse_x][scaled_mouse_y] = cell_life
     }    
 }
 
@@ -500,7 +504,7 @@ draw_batch :: proc(x, y, width, height: i32, renderer: ^SDL.Renderer) {
 
 logger :: proc(msg: string, level: LogLevel = LogLevel.INFO, logFilePath : string = "log.txt") {
     
-    if level < currentLogLevel {
+    if level < current_log_level {
         return // This message's level is below the current threshold; ignore it.
     }
     
