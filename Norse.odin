@@ -23,10 +23,8 @@ CELL_SIZE :: 1
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
-
 cellLife :bool
 isSet :bool
-isDebug := true
 
 zoom_level :i32 = 20
 zoom_step :i32 = 1
@@ -37,18 +35,16 @@ sim_speed_step :i32 = 10
 
 grid_state : GRID_STATE 
 grid_state_history := make([dynamic]GRID_STATE, 5, 5)
-//TODO: implement history and fix sim bug
+//TODO2: implement history and fix sim bug
 
-currentLogLevel := LogLevel.INFO
 
-LogLevel :: enum i32{
+LogLevel :: enum {
     DEBUG,
     INFO,
-    WARN,
+    WARNING,
     ERROR,
-    GNIPAHELLIR
-}
-
+} 
+currentLogLevel := LogLevel.INFO
 
 Game :: struct {
     perf_frequency: f64,
@@ -80,11 +76,7 @@ text_testing :: proc(){
     strings.write_string(&builder, "Hellir")
     logger(strings.to_string(builder), LogLevel.INFO)
 
-
     builder_make_example()
-
-  
-
 }
 
 builder_make_example :: proc() {
@@ -97,8 +89,10 @@ builder_make_example :: proc() {
     strings.write_rune(&sb, '°')
     the_string := strings.to_string(sb)
     fmt.println(the_string)
+    // Output: a slice of +3.14 is 180°s
 
     strings.builder_reset(&sb)
+
     strings.write_byte(&sb, 'a')
     strings.write_byte(&sb, 'b')
     strings.write_byte(&sb, 'a')
@@ -107,7 +101,7 @@ builder_make_example :: proc() {
     strings.write_byte(&sb, 'b')
     strings.write_byte(&sb, 'a')
     strings.write_byte(&sb, 'b')
-    // Output: a slice of +3.14 is 180°s
+    
 
     logger(strings.to_string(sb), LogLevel.INFO)
 }
@@ -144,6 +138,15 @@ main :: proc() {
     event : SDL.Event
 
     is_mouse_button_down : bool = false
+
+    // Drawing a glider 
+    //{false, true , false}
+    //{false, false, true}
+    //{true , true , true}
+    grid_state[10][10] = false; grid_state[11][10] = true; grid_state[12][10] = false
+    grid_state[10][11] = false; grid_state[11][11] = false; grid_state[12][11] = true
+    grid_state[10][12] = true; grid_state[11][12] = true; grid_state[12][12] = true
+
 
     game_loop : for {
         start = get_time()       
@@ -186,7 +189,7 @@ main :: proc() {
                             sim_speed = 1
                         } 
                     case .D:
-                        isDebug = !isDebug  
+                        currentLogLevel = LogLevel.DEBUG
                 }
             }
 
@@ -223,6 +226,11 @@ main :: proc() {
         grid_state[2][1] = true
         grid_state[3][1] = true
         grid_state[4][1] = true
+
+
+  
+
+        
      
         //     o
         //    o o
@@ -269,19 +277,18 @@ main :: proc() {
             if batch_start_x != -1 {
                 // Draw the last batch in the row if it ends with alive cells
                 draw_batch(batch_start_x, y, batch_width, 1, game.renderer)
-            }
-        }
-        
+            }    
+        }        
         
         // Drawing black vertical lines spaced 5 pixels apart
         SDL.SetRenderDrawColor(game.renderer, 0, 0, 0, 255) // Set color to black
         for x :i32= 0; x < WINDOW_WIDTH; x += zoom_level {
-            SDL.RenderDrawLine(game.renderer,  x, 0, x, WINDOW_HEIGHT)
+            SDL.RenderDrawLine(game.renderer,  x, 0, x, WINDOW_HEIGHT)       
         }
 
         // Drawing black horizontal lines spaced 5 pixels apart
         for y :i32= 0; y < WINDOW_HEIGHT; y +=  zoom_level {
-            SDL.RenderDrawLine(game.renderer, 0, y, WINDOW_WIDTH, y)
+            SDL.RenderDrawLine(game.renderer, 0, y, WINDOW_WIDTH, y)       
         }
 
         // Present the renderer's conte
@@ -293,7 +300,7 @@ main :: proc() {
             end = get_time()
         }
 
-		if isDebug && counter % 60 == 0	{
+		if currentLogLevel == LogLevel.DEBUG && counter % 60 == 0	{
             perf_frequency := game.perf_frequency; // The frequency of the performance counter
 
             duration_ticks := end - start; // Duration in ticks
@@ -304,19 +311,24 @@ main :: proc() {
             minutes := i64(duration_seconds / 60);
             seconds := i64(duration_seconds) % 60;
             milliseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000);
+            microseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000000);
+            nanoseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000000000);
+            fmt.println("Duration: ", minutes, " minutes, ", seconds, " seconds, ", milliseconds, " milliseconds, ", microseconds, " microseconds", nanoseconds," nanoseconds");
             
-            fmt.printf("Duration: %02d:%02d.%03d\n", minutes, seconds, milliseconds);     
-
-            fmt.println("---------------------------")
-            fmt.println("Mouse state : ", is_mouse_button_down)
-            fmt.println("---------------------------")
-            fmt.println("Drawing grid")
-            fmt.println("NUM_CELLS_X : ", NUM_CELLS_X)
-            fmt.println("NUM_CELLS_Y : ", NUM_CELLS_Y)
-            fmt.println("---------------------------")
-			fmt.println("Start : ", start)
-			fmt.println("End : ", end)
-			fmt.println("FPS : ", 1000 / (end - start))
+            logger(fmt.aprintf("Duration: %02d:%02d.%03d\n", minutes, seconds, milliseconds))
+            logger(fmt.aprintf("---------------------------"))
+            logger(fmt.aprintf("Mouse state : ", is_mouse_button_down))
+            logger(fmt.aprintf("---------------------------"))
+            logger(fmt.aprintf("Drawing grid"))      
+    
+            logger(fmt.aprintf("NUM_CELLS_X : ", NUM_CELLS_X))
+            logger(fmt.aprintf("NUM_CELLS_Y : ", NUM_CELLS_Y))
+            logger(fmt.aprintf("---------------------------"))
+			logger(fmt.aprintf("Start : ", start))
+			logger(fmt.aprintf("End : ", end))
+			logger(fmt.aprintf("FPS : ", 1000 / (end - start)))
+            logger(fmt.aprintf("---------------------------"))
+ 
 			counter = 0   
             fmt.println("---------------------------")                  
 		}
@@ -448,8 +460,6 @@ draw_batch :: proc(x, y, width, height: i32, renderer: ^SDL.Renderer) {
     SDL.SetRenderDrawColor(renderer, 100, 0, 0, 255) 
     SDL.RenderFillRect(renderer, &rect)
 }
-
-
 
 logger :: proc(msg: string, level: LogLevel = LogLevel.INFO, logFilePath : string = "log.txt") {
     
