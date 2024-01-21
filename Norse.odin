@@ -39,6 +39,17 @@ grid_state : GRID_STATE
 grid_state_history := make([dynamic]GRID_STATE, 5, 5)
 //TODO: implement history and fix sim bug
 
+currentLogLevel := LogLevel.INFO
+
+LogLevel :: enum i32{
+    DEBUG,
+    INFO,
+    WARN,
+    ERROR,
+    GNIPAHELLIR
+}
+
+
 Game :: struct {
     perf_frequency: f64,
     renderer: ^SDL.Renderer,
@@ -52,12 +63,32 @@ CellState :: struct {
 
 game := Game{}
 
-main :: proc() { 
+text_testing :: proc(){   
+    a := [?]string { "a", "b", "c" }
+    logger(strings.concatenate(a[:]), LogLevel.INFO)
+   
+    logger(strings.to_delimiter_case("Hello World", '_', true), LogLevel.INFO)
 
-    logger("Starting Norse Grids!")
+    strings.to_delimiter_case("Hello World", '_', false)
+    builder := strings.builder_make()
+    strings.write_string(&builder, "Testing ")  
+    strings.write_string(&builder, " 123")
+    logger(strings.to_string(builder), LogLevel.INFO)
+
+    builder = strings.builder_make()  // Reinitialize the builder to start fresh
+    strings.write_string(&builder, "Gnipa")  
+    strings.write_string(&builder, "Hellir")
+    logger(strings.to_string(builder), LogLevel.INFO)
+}
+
+main :: proc() { 
+    logger("Starting Norse grids!", LogLevel.INFO)
+    
     assert(SDL.Init(SDL.INIT_VIDEO) == 0, SDL.GetErrorString())
     assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, SDL.GetErrorString())
     defer SDL.Quit()
+
+    text_testing()
 
     window := SDL.CreateWindow(
         "Norse grids!",
@@ -243,9 +274,7 @@ main :: proc() {
             seconds := i64(duration_seconds) % 60;
             milliseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000);
             
-            fmt.printf("Duration: %02d:%02d.%03d\n", minutes, seconds, milliseconds);
-
-            logger("dsdfsdfsdf")
+            fmt.printf("Duration: %02d:%02d.%03d\n", minutes, seconds, milliseconds);     
 
             fmt.println("---------------------------")
             fmt.println("Mouse state : ", is_mouse_button_down)
@@ -389,7 +418,14 @@ draw_batch :: proc(x, y, width, height: i32, renderer: ^SDL.Renderer) {
     SDL.RenderFillRect(renderer, &rect)
 }
 
-logger :: proc(msg: string, logFilePath : string = "log.txt") {
+
+
+logger :: proc(msg: string, level: LogLevel = LogLevel.INFO, logFilePath : string = "log.txt") {
+    
+    if level < currentLogLevel {
+        return // This message's level is below the current threshold; ignore it.
+    }
+    
     fmt.println(msg)
     // Open or create the log file for appending
     file, err := os.open(logFilePath, os.O_WRONLY | os.O_APPEND | os.O_CREATE, 0666) // Adjust the mode flags and permissions as needed
