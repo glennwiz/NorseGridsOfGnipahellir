@@ -389,10 +389,10 @@ draw_batch :: proc(x, y, width, height: i32, renderer: ^SDL.Renderer) {
     SDL.RenderFillRect(renderer, &rect)
 }
 
-logger :: proc(msg: string) {
+logger :: proc(msg: string, logFilePath : string = "log.txt") {
     fmt.println(msg)
     // Open or create the log file for appending
-    file, err := os.open("log.txt", os.O_WRONLY | os.O_APPEND | os.O_CREATE, 0666) // Adjust the mode flags and permissions as needed
+    file, err := os.open(logFilePath, os.O_WRONLY | os.O_APPEND | os.O_CREATE, 0666) // Adjust the mode flags and permissions as needed
     if err != os.ERROR_NONE {
         fmt.eprintln("Failed to open log file:", err)
         os.exit(1)
@@ -401,8 +401,7 @@ logger :: proc(msg: string) {
 
     // Attempt to get the current time
     current_time := time.now()
- 
+
     // Write the message to the log file along with the current time
-    fmt.fprintf(file, "%s: %s\n", current_time, msg)
-    
+    fmt.fprintf(file, "%s: %s\n", current_time, msg)  
 }
