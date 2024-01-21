@@ -79,11 +79,42 @@ text_testing :: proc(){
     strings.write_string(&builder, "Gnipa")  
     strings.write_string(&builder, "Hellir")
     logger(strings.to_string(builder), LogLevel.INFO)
+
+
+    builder_make_example()
+
+  
+
+}
+
+builder_make_example :: proc() {
+    sb := strings.builder_make()
+    strings.write_byte(&sb, 'a')
+    strings.write_string(&sb, " slice of ")
+    strings.write_f64(&sb, 3.14, 'g', true) // See `fmt.fmt_float` byte codes
+    strings.write_string(&sb, " is ")
+    strings.write_int(&sb, 180)
+    strings.write_rune(&sb, '°')
+    the_string := strings.to_string(sb)
+    fmt.println(the_string)
+
+    strings.builder_reset(&sb)
+    strings.write_byte(&sb, 'a')
+    strings.write_byte(&sb, 'b')
+    strings.write_byte(&sb, 'a')
+    strings.write_byte(&sb, 'b')
+    strings.write_byte(&sb, 'a')
+    strings.write_byte(&sb, 'b')
+    strings.write_byte(&sb, 'a')
+    strings.write_byte(&sb, 'b')
+    // Output: a slice of +3.14 is 180°s
+
+    logger(strings.to_string(sb), LogLevel.INFO)
 }
 
 main :: proc() { 
     logger("Starting Norse grids!", LogLevel.INFO)
-    
+
     assert(SDL.Init(SDL.INIT_VIDEO) == 0, SDL.GetErrorString())
     assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, SDL.GetErrorString())
     defer SDL.Quit()
