@@ -10,6 +10,7 @@ import "core:strings"
 import SDL "vendor:sdl2"
 import SDL_Image "vendor:sdl2/image"
 import SDL_TTF "vendor:sdl2/ttf"
+import "core:time"
 
 TITLE :: "Gnipahellir"
 TITLE_BAR_HEIGHT :: 30
@@ -25,7 +26,7 @@ NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
 cellLife :bool
 isSet :bool
-isDebug := false
+isDebug := true
 
 zoom_level :i32 = 20
 zoom_step :i32 = 1
@@ -184,26 +185,30 @@ main :: proc() {
         append(&grid_state_history, grid_state)
 
         // Draw the cell at locations by the grid       
-        for x :i32= 0; x < NUM_CELLS_X; x += 1 {
-            for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
+        for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
+            batch_start_x :i32= -1
+            batch_width :i32= 0
+        
+            for x :i32= 0; x < NUM_CELLS_X; x += 1 {
                 if grid_state[x][y] {
-                    // Cell is on, draw it as a filled square
-                    scaled_cell_size := CELL_SIZE * zoom_level
-                    posX :i32= (x * CELL_SIZE) * zoom_level
-                    posY :i32= (y * CELL_SIZE) * zoom_level
-                            
-                    rect := SDL.Rect{
-                        x = posX,
-                        y = posY,
-                        w = CELL_SIZE * zoom_level,
-                        h = CELL_SIZE * zoom_level,
+                    if batch_start_x == -1 {
+                        batch_start_x = x
                     }
-                    
-                    SDL.SetRenderDrawColor(game.renderer, 100, 0, 0, 255)
-                    SDL.RenderFillRect(game.renderer, &rect)
+                    batch_width += 1
+                } else {
+                    if batch_start_x != -1 {
+                        draw_batch(batch_start_x, y, batch_width, 1, game.renderer)
+                        batch_start_x = -1
+                        batch_width = 0
+                    }
                 }
             }
+            if batch_start_x != -1 {
+                // Draw the last batch in the row if it ends with alive cells
+                draw_batch(batch_start_x, y, batch_width, 1, game.renderer)
+            }
         }
+        
         
         // Drawing black vertical lines spaced 5 pixels apart
         SDL.SetRenderDrawColor(game.renderer, 0, 0, 0, 255) // Set color to black
@@ -227,6 +232,23 @@ main :: proc() {
 
 		if isDebug && counter % 60 == 0
 		{
+
+            perf_frequency := game.perf_frequency; // The frequency of the performance counter
+
+            duration_ticks := end - start; // Duration in ticks
+            fmt.println("Duration in ticks: ", duration_ticks);
+            duration_seconds := duration_ticks / perf_frequency; // Convert ticks to seconds
+
+            fmt.println("Duration: ", duration_seconds, " seconds");
+            minutes := i64(duration_seconds / 60);
+            seconds := i64(duration_seconds) % 60;
+            milliseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000);
+            
+            fmt.printf("Duration: %02d:%02d.%03d\n", minutes, seconds, milliseconds);
+
+
+
+            fmt.println("---------------------------")
             fmt.println("Mouse state : ", is_mouse_button_down)
             fmt.println("---------------------------")
             fmt.println("Drawing grid")
@@ -241,10 +263,10 @@ main :: proc() {
 		}
 		
 		counter += 1
-        if(!sim_running){ continue game_loop }
-        
-        if counter % sim_speed != 0  { continue game_loop }
 
+        // we can have thees in a || or check but it's reads better this way
+        if !sim_running { continue game_loop }        
+        if counter % sim_speed != 0  { continue game_loop }
         
         //simulate the next generation
         for x :i32= 0; x < NUM_CELLS_X; x += 1 {
@@ -286,7 +308,7 @@ update_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
     } else {
        
         if live_neighbours == 3 {
-            fmt.println("Cell is born")
+            //fmt.println("Cell is born")
             return true
         }
         return live_neighbours == 3;
@@ -300,7 +322,6 @@ get_time :: proc() -> f64 {
 dump_grid_state :: proc() {      
    
 }
-
 
 handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) {
     scaled_mouse_x := mouse_x / zoom_level
@@ -356,4 +377,15 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
     if isSet{
         grid_state[scaled_mouse_x][scaled_mouse_y] = cellLife
     }    
+}
+
+draw_batch :: proc(x, y, width, height: i32, renderer: ^SDL.Renderer) {
+    rect := SDL.Rect{
+        x = x * CELL_SIZE * zoom_level,
+        y = y * CELL_SIZE * zoom_level,
+        w = width * CELL_SIZE * zoom_level,
+        h = height * CELL_SIZE * zoom_level,
+    }
+    SDL.SetRenderDrawColor(renderer, 100, 0, 0, 255) 
+    SDL.RenderFillRect(renderer, &rect)
 }
