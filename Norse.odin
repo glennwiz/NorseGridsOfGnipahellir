@@ -25,6 +25,7 @@ NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
 cellLife :bool
 isSet :bool
+cellCount :i32 = 0
 
 zoom_level :i32 = 20
 zoom_step :i32 = 1
@@ -113,7 +114,7 @@ main :: proc() {
     assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, SDL.GetErrorString())
     defer SDL.Quit()
 
-    text_testing()
+    //text_testing()
 
     window := SDL.CreateWindow(
         "Norse grids!",
@@ -143,10 +144,9 @@ main :: proc() {
     //{false, true , false}
     //{false, false, true}
     //{true , true , true}
-    grid_state[10][10] = false; grid_state[11][10] = true; grid_state[12][10] = false
-    grid_state[10][11] = false; grid_state[11][11] = false; grid_state[12][11] = true
-    grid_state[10][12] = true; grid_state[11][12] = true; grid_state[12][12] = true
-
+    //grid_state[10][10] = false; grid_state[11][10] = true; grid_state[12][10] = false
+    //grid_state[10][11] = false; grid_state[11][11] = false; grid_state[12][11] = true
+    //grid_state[10][12] = true; grid_state[11][12] = true; grid_state[12][12] = true
 
     game_loop : for {
         start = get_time()       
@@ -228,6 +228,48 @@ main :: proc() {
         grid_state[4][1] = true
 
 
+        //     o
+        //     o o
+        //     o   o
+        //     o     o
+        //     o   o
+        //     o o
+        //     o   o
+        //     o     o
+        //     o      o     
+        //grid_state[10] [5] = true;
+        //grid_state[10] [6] = true;  grid_state[11] [6] = true; 
+        //grid_state[10] [7] = true;  grid_state[12] [7] = true; 
+        //grid_state[10] [8] = true;  grid_state[13] [8] = true;
+        //grid_state[10] [9] = true;  grid_state[12] [9] = true;
+        //grid_state[10] [10] = true; grid_state[11] [10] = true; 
+        //grid_state[10] [11] = true; grid_state[12] [11] = true;
+        //grid_state[10] [12] = true; grid_state[13] [12] = true;
+        //grid_state[10] [13] = true; grid_state[14] [13] = true;
+
+
+        //     o      o    o
+        //     o    o    o
+        //     o o     o 
+        //     o     o
+        //     o   o
+        //     o o
+        //     o   
+        //     o     
+        //     o        
+        //     o
+        //     o
+        //grid_state[10] [5] = true; grid_state[13] [5] = true;  grid_state[16] [5] = true;
+        //grid_state[10] [6] = true;  grid_state[12] [6] = true; grid_state[15] [6] = true;
+        //grid_state[10] [7] = true;  grid_state[11] [7] = true; grid_state[14] [7] = true; 
+        //grid_state[10] [8] = true;  grid_state[13] [8] = true;
+        //grid_state[10] [9] = true;  grid_state[12] [9] = true;
+        //grid_state[10] [10] = true; grid_state[11] [10] = true; 
+        //grid_state[10] [11] = true; 
+        //grid_state[10] [12] = true; 
+        //grid_state[10] [13] = true; 
+
+
   
 
         
@@ -242,16 +284,16 @@ main :: proc() {
         //    o o 
         //   o   o
         //  o     o      
-       //grid_state[16] [2] = true 
-       //grid_state[15] [3] = true; grid_state[17] [3] = true
-       //grid_state[14] [4] = true; grid_state[18] [4] = true
-       //grid_state[13] [5] = true; grid_state[19] [5] = true
-       //grid_state[14] [6] = true; grid_state[18] [6] = true
-       //grid_state[15] [7] = true; grid_state[17] [7] = true
-       //grid_state[16] [8] = true; 
-       //grid_state[15] [9] = true; grid_state[17] [9] = true
-       //grid_state[14] [10] = true; grid_state[18] [10] = true
-       //grid_state[13] [11] = true; grid_state[19] [11] = true     
+        grid_state[16] [2] = true 
+        grid_state[15] [3] = true; grid_state[17] [3] = true
+        grid_state[14] [4] = true; grid_state[18] [4] = true
+        grid_state[13] [5] = true; grid_state[19] [5] = true
+        grid_state[14] [6] = true; grid_state[18] [6] = true
+        grid_state[15] [7] = true; grid_state[17] [7] = true
+        grid_state[16] [8] = true; 
+        grid_state[15] [9] = true; grid_state[17] [9] = true
+        grid_state[14] [10] = true; grid_state[18] [10] = true
+        grid_state[13] [11] = true; grid_state[19] [11] = true     
 
         append(&grid_state_history, grid_state)
 
@@ -304,33 +346,21 @@ main :: proc() {
             perf_frequency := game.perf_frequency; // The frequency of the performance counter
 
             duration_ticks := end - start; // Duration in ticks
-            fmt.println("Duration in ticks: ", duration_ticks);
-            duration_seconds := duration_ticks / perf_frequency; // Convert ticks to seconds
-
-            fmt.println("Duration: ", duration_seconds, " seconds");
-            minutes := i64(duration_seconds / 60);
-            seconds := i64(duration_seconds) % 60;
-            milliseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000);
-            microseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000000);
-            nanoseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000000000);
-            fmt.println("Duration: ", minutes, " minutes, ", seconds, " seconds, ", milliseconds, " milliseconds, ", microseconds, " microseconds", nanoseconds," nanoseconds");
-            
-            logger(fmt.aprintf("Duration: %02d:%02d.%03d\n", minutes, seconds, milliseconds))
-            logger(fmt.aprintf("---------------------------"))
-            logger(fmt.aprintf("Mouse state : ", is_mouse_button_down))
-            logger(fmt.aprintf("---------------------------"))
-            logger(fmt.aprintf("Drawing grid"))      
-    
-            logger(fmt.aprintf("NUM_CELLS_X : ", NUM_CELLS_X))
-            logger(fmt.aprintf("NUM_CELLS_Y : ", NUM_CELLS_Y))
-            logger(fmt.aprintf("---------------------------"))
-			logger(fmt.aprintf("Start : ", start))
-			logger(fmt.aprintf("End : ", end))
-			logger(fmt.aprintf("FPS : ", 1000 / (end - start)))
-            logger(fmt.aprintf("---------------------------"))
- 
-			counter = 0   
-            fmt.println("---------------------------")                  
+            fmt.println("Duration in ticks: ", duration_ticks)           
+            duration_seconds := duration_ticks / perf_frequency; // Convert ticks to seconds  
+            fmt.println("Duration in seconds: ", duration_seconds)      
+            minutes := i64(duration_seconds / 60)
+            seconds := i64(duration_seconds) % 60
+            milliseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000)
+            microseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000000)
+            nanoseconds := i64((duration_seconds - f64(i64(duration_seconds))) * 1000000000)
+            logger(fmt.aprintf("Duration: ", milliseconds, " milliseconds", microseconds, " microseconds", nanoseconds," nanoseconds"))          
+        
+            logger(fmt.aprintf("FPS: ", 1000 / duration_seconds, " FPS")) 
+            //print dead and alive cells and log them
+            logger(fmt.aprintf("Alive cells: ", cellCount))
+			counter = 0 
+                      
 		}
 		
 		counter += 1
@@ -375,14 +405,20 @@ count_live_neighbours := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool, x, y: 
 
 update_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
     if is_alive {
-        return live_neighbours == 2 || live_neighbours == 3;
+        
+        if live_neighbours < 2 || live_neighbours > 3 {
+            cellCount -= 1
+            return false
+        }
+        cellCount += 1
+        return true
     } else {
        
         if live_neighbours == 3 {
-            //fmt.println("Cell is born")
+            cellCount += 1
             return true
-        }
-        return live_neighbours == 3;
+        }       
+        return false
     }
 }
 
