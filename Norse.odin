@@ -31,14 +31,15 @@ cell_count :i32 = 0
 zoom_level :i32 = 20
 zoom_step :i32 = 1
 
+bug_mode :bool = false
 sim_running :bool
 sim_speed :i32 = 60
 sim_speed_step :i32 = 10
 
-grid_state : GRID_STATE 
-grid_state_history := make([dynamic]GRID_STATE, 5, 5)
-//TODO2: implement history and fix sim bug
 
+grid_state : GRID_STATE 
+next_grid_state : GRID_STATE 
+grid_state_history := make([dynamic]GRID_STATE, 5, 5)
 
 LogLevel :: enum {
     DEBUG,
@@ -115,8 +116,6 @@ main :: proc() {
     assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, SDL.GetErrorString())
     defer SDL.Quit()
 
-    //text_testing()
-
     window := SDL.CreateWindow(
         "Norse grids!",
         SDL.WINDOWPOS_CENTERED,
@@ -140,14 +139,6 @@ main :: proc() {
     event : SDL.Event
 
     is_mouse_button_down : bool = false
-
-    // Drawing a glider 
-    //{false, true , false}
-    //{false, false, true}
-    //{true , true , true}
-    //grid_state[10][10] = false; grid_state[11][10] = true; grid_state[12][10] = false
-    //grid_state[10][11] = false; grid_state[11][11] = false; grid_state[12][11] = true
-    //grid_state[10][12] = true; grid_state[11][12] = true; grid_state[12][12] = true
 
     game_loop : for {
         start = get_time()       
@@ -173,8 +164,7 @@ main :: proc() {
                         if zoom_level < 1 { 
                             zoom_level = 1
                         }
-                    case .A:
-                        //if A is pressed dump the grid state to file for debugging
+                    case .A:                        
                         dump_grid_state()
                         break game_loop
                     case .SPACE:
@@ -191,6 +181,8 @@ main :: proc() {
                         } 
                     case .D:
                         current_log_level = LogLevel.DEBUG
+                    case .M:
+                        bug_mode = !bug_mode
                 }
             }
 
@@ -223,10 +215,10 @@ main :: proc() {
             SDL.RenderDrawLine(game.renderer, x, 0, x, WINDOW_HEIGHT)
         } 
                 // X  Y
-        grid_state[1][1] = true
-        grid_state[2][1] = true
-        grid_state[3][1] = true
-        grid_state[4][1] = true
+        //grid_state[1][1] = true
+        //grid_state[2][1] = true
+        //grid_state[3][1] = true
+        //grid_state[4][1] = true
 
 
         //     o
@@ -330,9 +322,7 @@ main :: proc() {
             SDL.RenderDrawLine(game.renderer, 0, y, WINDOW_WIDTH, y)       
         }
 
-        SDL.RenderPresent(game.renderer)
-
-       
+        SDL.RenderPresent(game.renderer)       
 
         if sim_running && counter % sim_speed == 0 {
                 //simulate the next generation
@@ -345,10 +335,22 @@ main :: proc() {
                     Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction. 
                     */         
                     live_neighbours := count_live_neighbours(grid_state, x , y );
-                    grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);                    
+
+                    if bug_mode {
+                        grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours); 
+                    }
+                       
+                    if !bug_mode{
+                        next_grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);     
+                    }
                 }
             }
             
+            // swap the grids
+            temp_grid := grid_state
+            grid_state = next_grid_state
+            next_grid_state = temp_grid
+
             append(&grid_state_history, grid_state)
         }
 
