@@ -31,11 +31,17 @@ cell_count :i32 = 0
 zoom_level :i32 = 20
 zoom_step :i32 = 1
 
+bug_mode_flipper :bool = false
 bug_mode :bool = false
 sim_running :bool
 sim_speed :i32 = 60
 sim_speed_step :i32 = 10
 
+center_x := WINDOW_WIDTH / 2
+center_y := WINDOW_HEIGHT / 2
+
+offset_x := (NUM_CELLS_X * zoom_level / 2) - i32(center_x)
+offset_y := (NUM_CELLS_Y * zoom_level / 2) - i32(center_y)
 
 grid_state : GRID_STATE 
 next_grid_state : GRID_STATE 
@@ -62,53 +68,6 @@ CellState :: struct {
 
 game := Game{}
 
-text_testing :: proc(){   
-    a := [?]string { "a", "b", "c" }
-    logger(strings.concatenate(a[:]), LogLevel.INFO)
-   
-    logger(strings.to_delimiter_case("Hello World", '_', true), LogLevel.INFO)
-
-    strings.to_delimiter_case("Hello World", '_', false)
-    builder := strings.builder_make()
-    strings.write_string(&builder, "Testing ")  
-    strings.write_string(&builder, " 123")
-    logger(strings.to_string(builder), LogLevel.INFO)
-
-    builder = strings.builder_make()  // Reinitialize the builder to start fresh
-    strings.write_string(&builder, "Gnipa")  
-    strings.write_string(&builder, "Hellir")
-    logger(strings.to_string(builder), LogLevel.INFO)
-
-    builder_make_example()
-}
-
-builder_make_example :: proc() {
-    sb := strings.builder_make()
-    strings.write_byte(&sb, 'a')
-    strings.write_string(&sb, " slice of ")
-    strings.write_f64(&sb, 3.14, 'g', true) // See `fmt.fmt_float` byte codes
-    strings.write_string(&sb, " is ")
-    strings.write_int(&sb, 180)
-    strings.write_rune(&sb, '°')
-    the_string := strings.to_string(sb)
-    fmt.println(the_string)
-    // Output: a slice of +3.14 is 180°s
-
-    strings.builder_reset(&sb)
-
-    strings.write_byte(&sb, 'a')
-    strings.write_byte(&sb, 'b')
-    strings.write_byte(&sb, 'a')
-    strings.write_byte(&sb, 'b')
-    strings.write_byte(&sb, 'a')
-    strings.write_byte(&sb, 'b')
-    strings.write_byte(&sb, 'a')
-    strings.write_byte(&sb, 'b')
-    
-
-    logger(strings.to_string(sb), LogLevel.INFO)
-}
-
 main :: proc() { 
     logger("Starting Norse grids!", LogLevel.INFO)
 
@@ -122,7 +81,7 @@ main :: proc() {
         SDL.WINDOWPOS_CENTERED,
         WINDOW_WIDTH,
         WINDOW_HEIGHT,
-        WINDOW_FLAGS| SDL.WINDOW_BORDERLESS  // Window flags with borderless option        
+        WINDOW_FLAGS| SDL.WINDOW_BORDERLESS,   
     )
 
     assert(window != nil, SDL.GetErrorString())
@@ -191,6 +150,8 @@ main :: proc() {
                         }
 
                         bug_mode = !bug_mode
+                    case .N:
+                        bug_mode_flipper = !bug_mode_flipper
                 }
             }
 
@@ -222,11 +183,9 @@ main :: proc() {
             SDL.SetRenderDrawColor(game.renderer, fade, fade, fade, 255)
             SDL.RenderDrawLine(game.renderer, x, 0, x, WINDOW_HEIGHT)
         } 
-                // X  Y
-        //grid_state[1][1] = true
-        //grid_state[2][1] = true
-        //grid_state[3][1] = true
-        //grid_state[4][1] = true
+ 
+
+
 
 
         //     o
@@ -333,6 +292,20 @@ main :: proc() {
         SDL.RenderPresent(game.renderer)       
 
         if sim_running && counter % sim_speed == 0 {
+
+            if bug_mode_flipper {
+                // flip grid states
+                if bug_mode {
+                    bug_mode = !bug_mode
+                    grid_state = next_grid_state                            
+                }
+    
+                if !bug_mode {
+                    bug_mode = !bug_mode
+                    next_grid_state = grid_state
+                }
+            }
+
                 //simulate the next generation
             for x :i32= 0; x < NUM_CELLS_X; x += 1 {
                 for y :i32= 0; y < NUM_CELLS_Y; y += 1 {  
