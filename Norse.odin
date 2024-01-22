@@ -182,6 +182,14 @@ main :: proc() {
                     case .D:
                         current_log_level = LogLevel.DEBUG
                     case .M:
+                        if bug_mode {
+                            grid_state = next_grid_state                            
+                        }
+
+                        if !bug_mode {
+                            next_grid_state = grid_state
+                        }
+
                         bug_mode = !bug_mode
                 }
             }
