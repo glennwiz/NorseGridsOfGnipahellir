@@ -31,11 +31,13 @@ cell_count :i32 = 0
 zoom_level :i32 = 20
 zoom_step :i32 = 1
 
+zipper :i32= 0
 bug_mode_flipper :bool = false
+bug_mode_flipper_count := 0
 bug_mode :bool = false
 sim_running :bool
 sim_speed :i32 = 60
-sim_speed_step :i32 = 10
+sim_speed_step :i32 = 5
 
 center_x := WINDOW_WIDTH / 2
 center_y := WINDOW_HEIGHT / 2
@@ -101,7 +103,7 @@ main :: proc() {
 
     game_loop : for {
         start = get_time()       
-        
+   
         // Input Handling
         if SDL.PollEvent(&event) {
             if event.type == SDL.EventType.QUIT {
@@ -118,30 +120,38 @@ main :: proc() {
                         if zoom_level > 10 { 
                             zoom_level = 20
                         }
+                        fmt.println("zoom_level  ", zoom_level)
                     case .Z:
                         zoom_level -= zoom_step
                         if zoom_level < 1 { 
                             zoom_level = 1
                         }
+                        fmt.println("zoom_level  ", zoom_level)
                     case .A:                        
                         dump_grid_state()
                         break game_loop
                     case .SPACE:
                         sim_running = !sim_running
+                        fmt.println("sim_running  ", sim_running)
                     case .LEFT:
                         sim_speed += sim_speed_step
+
                         if sim_speed > 60 { 
                             sim_speed = 60
                         }
+                        fmt.println("sim_speed  ", 60 - sim_speed )
                     case .RIGHT:
                         sim_speed -= sim_speed_step
                         if sim_speed < 1 { 
                             sim_speed = 1
                         } 
+                        fmt.println("sim_speed  ", 60 - sim_speed)
                     case .D:
                         current_log_level = LogLevel.DEBUG
+                        fmt.println("current_log_level  ", current_log_level)
                     case .M:
                         if bug_mode {
+
                             grid_state = next_grid_state                            
                         }
 
@@ -150,8 +160,17 @@ main :: proc() {
                         }
 
                         bug_mode = !bug_mode
+                        fmt.println("bug_mode  ", bug_mode)
                     case .N:
-                        bug_mode_flipper = !bug_mode_flipper
+                        if bug_mode_flipper {                            
+                            bug_mode_flipper_count += 1
+                            fmt.println("|||||Bug mode flipper count: ", bug_mode_flipper_count)
+                        }
+
+                        if !bug_mode_flipper {                            
+                            bug_mode_flipper = !bug_mode_flipper
+                            fmt.println("bug_mode_flipper  ", bug_mode_flipper)
+                        }
                 }
             }
 
@@ -219,15 +238,15 @@ main :: proc() {
         //     o        
         //     o
         //     o
-        //grid_state[10] [5] = true; grid_state[13] [5] = true;  grid_state[16] [5] = true;
-        //grid_state[10] [6] = true;  grid_state[12] [6] = true; grid_state[15] [6] = true;
-        //grid_state[10] [7] = true;  grid_state[11] [7] = true; grid_state[14] [7] = true; 
-        //grid_state[10] [8] = true;  grid_state[13] [8] = true;
-        //grid_state[10] [9] = true;  grid_state[12] [9] = true;
-        //grid_state[10] [10] = true; grid_state[11] [10] = true; 
-        //grid_state[10] [11] = true; 
-        //grid_state[10] [12] = true; 
-        //grid_state[10] [13] = true; 
+       grid_state[10] [5] = true; grid_state[13] [5] = true;  grid_state[16] [5] = true;
+       grid_state[10] [6] = true;  grid_state[12] [6] = true; grid_state[15] [6] = true;
+       grid_state[10] [7] = true;  grid_state[11] [7] = true; grid_state[14] [7] = true; 
+       grid_state[10] [8] = true;  grid_state[13] [8] = true;
+       grid_state[10] [9] = true;  grid_state[12] [9] = true;
+       grid_state[10] [10] = true; grid_state[11] [10] = true; 
+       grid_state[10] [11] = true; 
+       grid_state[10] [12] = true; 
+       grid_state[10] [13] = true; 
 
      
         //     o
@@ -240,17 +259,17 @@ main :: proc() {
         //    o o 
         //   o   o
         //  o     o      
-        grid_state[16] [2] = true 
-        grid_state[15] [3] = true; grid_state[17] [3] = true
-        grid_state[14] [4] = true; grid_state[18] [4] = true
-        grid_state[13] [5] = true; grid_state[19] [5] = true
-        grid_state[14] [6] = true; grid_state[18] [6] = true
-        grid_state[15] [7] = true; grid_state[17] [7] = true
-        grid_state[16] [8] = true; 
-        grid_state[15] [9] = true; grid_state[17] [9] = true
-        grid_state[14] [10] = true; grid_state[18] [10] = true
-        grid_state[13] [11] = true; grid_state[19] [11] = true     
-
+        //grid_state[16] [2] = true 
+        //grid_state[15] [3] = true; grid_state[17] [3] = true
+        //grid_state[14] [4] = true; grid_state[18] [4] = true
+        //grid_state[13] [5] = true; grid_state[19] [5] = true
+        //grid_state[14] [6] = true; grid_state[18] [6] = true
+        //grid_state[15] [7] = true; grid_state[17] [7] = true
+        //grid_state[16] [8] = true; 
+        //grid_state[15] [9] = true; grid_state[17] [9] = true
+        //grid_state[14] [10] = true; grid_state[18] [10] = true
+        //grid_state[13] [11] = true; grid_state[19] [11] = true     
+//
         append(&grid_state_history, grid_state)
 
         // Draw the cell at locations by the grid       
@@ -292,19 +311,19 @@ main :: proc() {
         SDL.RenderPresent(game.renderer)       
 
         if sim_running && counter % sim_speed == 0 {
+            
+            zipper += 1
 
-            if bug_mode_flipper {
-                // flip grid states
-                if bug_mode {
-                    bug_mode = !bug_mode
-                    grid_state = next_grid_state                            
-                }
-    
-                if !bug_mode {
-                    bug_mode = !bug_mode
-                    next_grid_state = grid_state
+            if bug_mode_flipper && bug_mode_flipper_count == 0 {
+                //TODO: Implement grid merge 
+            }
+
+            if bug_mode_flipper_count == 1  {
+                if zipper % 2 == 0 {
+                    
                 }
             }
+
 
                 //simulate the next generation
             for x :i32= 0; x < NUM_CELLS_X; x += 1 {
@@ -319,18 +338,19 @@ main :: proc() {
 
                     if bug_mode {
                         grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours); 
+                        
                     }
-                       
-                    if !bug_mode{
-                        next_grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);     
-                    }
+
+                    next_grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);
                 }
+            } 
+
+            if !bug_mode {
+                 // swap the grids
+                temp_grid := grid_state
+                grid_state = next_grid_state
+                next_grid_state = temp_grid
             }
-            
-            // swap the grids
-            temp_grid := grid_state
-            grid_state = next_grid_state
-            next_grid_state = temp_grid
 
             append(&grid_state_history, grid_state)
         }
@@ -356,7 +376,7 @@ main :: proc() {
              alive_cells := count_alive_cells(grid_state) 
 
              //print dead and alive cells and log them
-             logger(fmt.aprintf("Alive cells: ",alive_cells ))
+             logger(fmt.aprintf("Alive cells: ", alive_cells ))
 
              //log how much computation time was used per cell
              vec :f64= 0
