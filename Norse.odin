@@ -10,28 +10,48 @@ GRID_SIZE :: 64
 CellGrid :: [GRID_SIZE][GRID_SIZE]bool
 
 main :: proc() {
-    start_tick := time.tick_now()
-    fmt.println("Duration:", time.tick_since(start_tick))
+
     // Create a 64x64 grid of boolean values
     grid := CellGrid{}
+    start_tick := time.tick_now()
+    gp : ^[GRID_SIZE][GRID_SIZE]bool
+    gp = &grid
+  
+    //https://pkg.odin-lang.org/core/time/#duration
+    
+    for i := 0; i < 64; i += 1 {
+        for j := 0; j < 64; j += 1 {
+            ff := &gp[i][j]
+            ff^ = false 
+        }
+    }
+
+    fmt.println("Duration looping and setting false trough pointer:", time.tick_since(start_tick))
+    //Duration looping and setting false trough pointer: 27┬Ás
+    start_tick = time.tick_now()   
+
+
     for i := 0; i < GRID_SIZE; i = i + 1 {
         for j := 0; j < GRID_SIZE; j = j + 1 {
             grid[i][j] = false
         }
     }
     fmt.println("Duration looping and setting false:", time.tick_since(start_tick))
-    start_tick = time.tick_now()
+    // Duration looping and setting false: 25.9┬Ás
+    
+       start_tick = time.tick_now()
     for i := 0; i < GRID_SIZE; i = i + 1 {
-        for j := 0; j < GRID_SIZE; j = j + 1 {
-            
+        for j := 0; j < GRID_SIZE; j = j + 1 {            
             v := rand.int_max(2)
             grid[i][j] = v == 1            
         }
     }
     fmt.println("Duration looping and setting random:", time.tick_since(start_tick))
+    //Duration looping and setting random: 86.1┬Ás
     
-    start_tick = time.tick_now()
+    //start_tick = time.tick_now()
     // Print the grid
+    /*
     for i := 0; i < GRID_SIZE; i = i + 1 {
         for j := 0; j < GRID_SIZE; j = j + 1 {
             if grid[i][j] {
@@ -43,27 +63,9 @@ main :: proc() {
         fmt.println("")
     }
     fmt.println("Duration printing:", time.tick_since(start_tick))
-
-    start_tick = time.tick_now()
-    gp : ^[GRID_SIZE][GRID_SIZE]bool
-    gp = &grid
-  
-    //lets time this loop
-    //https://pkg.odin-lang.org/core/time/#duration
-    
-    for i := 0; i < 64; i += 1 {
-        for j := 0; j < 64; j += 1 {
-
-            ff :=  &gp[i][j]
-
-            ff^ = false         
-        }
-    }
-    fmt.println("Duration looping and setting false tough pointer:", time.tick_since(start_tick))
+    */
 
 
-    
-    // Print the grid
     for i := 0; i < GRID_SIZE; i = i + 1 {
         for j := 0; j < GRID_SIZE; j = j + 1 {
             if grid[i][j] {
@@ -74,6 +76,18 @@ main :: proc() {
         }
         fmt.println("")
     }
+    
+    // Print the grid
+    /*for i := 0; i < GRID_SIZE; i = i + 1 {
+        for j := 0; j < GRID_SIZE; j = j + 1 {
+            if grid[i][j] {
+                fmt.print("#")
+            } else {
+                fmt.print(".")
+            }
+        }
+        fmt.println("")
+    }*/
 
     fmt.println("Random u32: ",rand.uint32());
 
