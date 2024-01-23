@@ -55,6 +55,7 @@ LogLevel :: enum {
     WARNING,
     ERROR,
 } 
+
 current_log_level := LogLevel.INFO
 
 Game :: struct {
