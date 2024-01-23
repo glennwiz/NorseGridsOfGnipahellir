@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:math/rand"
+import "core:time"
 
 GRID_SIZE :: 64
 
@@ -9,7 +10,8 @@ GRID_SIZE :: 64
 CellGrid :: [GRID_SIZE][GRID_SIZE]bool
 
 main :: proc() {
-
+    start_tick := time.tick_now()
+    fmt.println("Duration:", time.tick_since(start_tick))
     // Create a 64x64 grid of boolean values
     grid := CellGrid{}
     for i := 0; i < GRID_SIZE; i = i + 1 {
@@ -17,7 +19,8 @@ main :: proc() {
             grid[i][j] = false
         }
     }
-    
+    fmt.println("Duration looping and setting false:", time.tick_since(start_tick))
+    start_tick = time.tick_now()
     for i := 0; i < GRID_SIZE; i = i + 1 {
         for j := 0; j < GRID_SIZE; j = j + 1 {
             
@@ -25,7 +28,9 @@ main :: proc() {
             grid[i][j] = v == 1            
         }
     }
-
+    fmt.println("Duration looping and setting random:", time.tick_since(start_tick))
+    
+    start_tick = time.tick_now()
     // Print the grid
     for i := 0; i < GRID_SIZE; i = i + 1 {
         for j := 0; j < GRID_SIZE; j = j + 1 {
@@ -37,7 +42,9 @@ main :: proc() {
         }
         fmt.println("")
     }
+    fmt.println("Duration printing:", time.tick_since(start_tick))
 
+    start_tick = time.tick_now()
     gp : ^[GRID_SIZE][GRID_SIZE]bool
     gp = &grid
   
@@ -51,10 +58,11 @@ main :: proc() {
 
             ff^ = false         
         }
-        fmt.println("")
     }
+    fmt.println("Duration looping and setting false tough pointer:", time.tick_since(start_tick))
 
 
+    
     // Print the grid
     for i := 0; i < GRID_SIZE; i = i + 1 {
         for j := 0; j < GRID_SIZE; j = j + 1 {
