@@ -31,7 +31,7 @@ is_set :bool
 cell_count :i32 = 0
 
 zoom_level :i32 = 20
-zoom_step :i32 = 1
+zoom_step :i32 = 2
 
 zipper :i32= 0
 bug_mode_flipper :bool = false
@@ -40,6 +40,7 @@ bug_mode :bool = false
 sim_running :bool
 sim_speed :i32 = 60
 sim_speed_step :i32 = 5
+grid_show :bool = false
 
 center_x := WINDOW_WIDTH / 2
 center_y := WINDOW_HEIGHT / 2
@@ -68,12 +69,14 @@ CellState :: struct {
     is_alive: bool
 }
 
-//we draw a cell a 300, 150 and need to move the render window to the center of the cell
-//we need to move the render window to 150, 75
+offset_x_o :i32= -2800
+offset_y_o :i32= -2160
 
-offset_x := (NUM_CELLS_X * zoom_level / 2) - i32(center_x)
-offset_y := (NUM_CELLS_Y * zoom_level / 2) - i32(center_y)
+offset_x :i32= -2800
+offset_y :i32= -2160
 
+range_start :i32= 2
+range_end :i32= 20
 
 game := Game{}
 
@@ -111,6 +114,8 @@ main :: proc() {
     game_loop : for {
         start = get_time()       
    
+        run_draw_sync();
+
         // Input Handling
         if SDL.PollEvent(&event) {
             if event.type == SDL.EventType.QUIT {
@@ -121,45 +126,44 @@ main :: proc() {
             if event.type == SDL.EventType.KEYDOWN {
                 #partial switch event.key.keysym.scancode {
                     case .ESCAPE:
-                        break game_loop
+                        break game_loop                    
+
                     case .X:
-                        zoom_level += zoom_step
+                        zoom_level += zoom_step                       
                         if zoom_level > 20 { 
-                            zoom_level = 20
-                        }
-                        
+                            zoom_level = 20                            
+                        } 
+                        run_draw_sync()   
+                                     
                         fmt.println("zoom_level  ", zoom_level)
                     case .Z:
-                        zoom_level -= zoom_step
-                        if zoom_level < 1 { 
-                            zoom_level = 1
+                        zoom_level -= zoom_step                       
+                        if zoom_level < 2 { 
+                            zoom_level = 2
                         }
+                        run_draw_sync()
                         fmt.println("zoom_level  ", zoom_level)
-                    case .A:                        
-                        dump_grid_state()
-                        break game_loop
                     case .SPACE:
                         sim_running = !sim_running
                         fmt.println("sim_running  ", sim_running)
-                    case .LEFT:
+                    case .COMMA:
                         sim_speed += sim_speed_step
 
-                        if sim_speed > 60 { 
-                            sim_speed = 60
+                        if sim_speed > 100 { 
+                            sim_speed = 100
                         }
-                        fmt.println("sim_speed  ", 60 - sim_speed )
-                    case .RIGHT:
+                        fmt.println("sim_speed  ", 100 - sim_speed )
+                    case .PERIOD:
                         sim_speed -= sim_speed_step
                         if sim_speed < 1 { 
                             sim_speed = 1
                         } 
-                        fmt.println("sim_speed  ", 60 - sim_speed)
+                        fmt.println("sim_speed  ", 100 - sim_speed)
                     case .D:
                         current_log_level = LogLevel.DEBUG
                         fmt.println("current_log_level  ", current_log_level)
                     case .M:
                         if bug_mode {
-
                             grid_state = next_grid_state                            
                         }
 
@@ -243,15 +247,19 @@ main :: proc() {
         }        
         
         // Drawing black vertical lines spaced 5 pixels apart
-        SDL.SetRenderDrawColor(game.renderer, 0, 0, 0, 255) // Set color to black
-        for x :i32= 0; x < WINDOW_WIDTH; x += zoom_level {
-            SDL.RenderDrawLine(game.renderer,  x, 0, x, WINDOW_HEIGHT)       
-        }
+        if(grid_show) {
+            SDL.SetRenderDrawColor(game.renderer, 0, 0, 0, 255) // Set color to black
 
-        // Drawing black horizontal lines spaced 5 pixels apart
-        for y :i32= 0; y < WINDOW_HEIGHT; y +=  zoom_level {
-            SDL.RenderDrawLine(game.renderer, 0, y, WINDOW_WIDTH, y)       
+            for x :i32= 0; x < WINDOW_WIDTH; x += zoom_level {
+                SDL.RenderDrawLine(game.renderer,  x, 0, x, WINDOW_HEIGHT)       
+            }
+
+            // Drawing black horizontal lines spaced 5 pixels apart
+            for y :i32= 0; y < WINDOW_HEIGHT; y +=  zoom_level {
+                SDL.RenderDrawLine(game.renderer, 0, y, WINDOW_WIDTH, y)       
+            }
         }
+    
 
         SDL.RenderPresent(game.renderer)       
 
@@ -379,13 +387,17 @@ get_time :: proc() -> f64 {
     return f64(PERF_COUNT) * 1000 / game.perf_frequency
 }
 
-dump_grid_state :: proc() {      
-   
-}
-
 handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) {
-    scaled_mouse_x := mouse_x / zoom_level
+    scaled_mouse_x := mouse_x / zoom_level 
     scaled_mouse_y := mouse_y / zoom_level
+
+    scaled_mouse_x -= offset_x / zoom_level
+    scaled_mouse_y -= offset_y / zoom_level
+    
+    // Check if the mouse is outside the grid
+    if scaled_mouse_x < 0 || scaled_mouse_x >= NUM_CELLS_X || scaled_mouse_y < 0 || scaled_mouse_y >= NUM_CELLS_Y {
+        return
+    }    
 
     if grid_state[scaled_mouse_x][scaled_mouse_y] {
         fmt.println("Cell is alive")
@@ -441,6 +453,9 @@ draw_batch :: proc(x, y, width, height: i32, renderer: ^SDL.Renderer) {
         h = height * CELL_SIZE * zoom_level,
     }
 
+    rect.x += offset_x; // Adjust x position by offset_x
+    rect.y += offset_y; // Adjust y position by offset_y if needed
+
     SDL.SetRenderDrawColor(renderer, 100, 0, 0, 255) 
     SDL.RenderFillRect(renderer, &rect)
 }
@@ -465,4 +480,36 @@ logger :: proc(msg: string, level: LogLevel = LogLevel.INFO, logFilePath : strin
 
     // Write the message to the log file along with the current time
     fmt.fprintf(file, "%s: %s\n", current_time, msg)  
+}
+
+run_draw_sync :: proc(){
+    calc_offset()
+    turn_on_off_grid()  
+}
+
+calc_offset := proc() {    
+        
+    offset_x = i32(map_range_x_to_value(f32(zoom_level)))
+    offset_y = i32(map_range_y_to_value(f32(zoom_level)))
+}
+
+map_range_x_to_value :: proc(input_value: f32, range_start: f32 = 2.0, range_end: f32 = 20.0, value_start: f32 = 0.0, value_end: f32 = -2800.0) -> f32 {
+    proportion := (input_value - range_start) / (range_end - range_start)
+    mapped_value := proportion * (value_end - value_start) + value_start
+    return mapped_value
+}
+
+map_range_y_to_value :: proc(input_value: f32, range_start: f32 = 2.0, range_end: f32 = 20.0, value_start: f32 = 0.0, value_end: f32 = -2160.0) -> f32 {
+    proportion := (input_value - range_start) / (range_end - range_start)
+    mapped_value := proportion * (value_end - value_start) + value_start
+    return mapped_value
+}
+
+turn_on_off_grid :: proc(){
+    if(zoom_level == 2 || zoom_level ==4 ||zoom_level == 20){
+        grid_show = true
+    }
+    else{
+        grid_show = false
+    }
 }

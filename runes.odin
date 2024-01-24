@@ -67,15 +67,15 @@ get_rune_o :: proc() {
     //   o   o
     //  o     o     
 
-    grid_state[16] [5] = true 
-    grid_state[15] [6] = true; grid_state[17] [6] = true
-    grid_state[14] [7] = true; grid_state[18] [7] = true
-    grid_state[13] [8] = true; grid_state[19] [8] = true
-    grid_state[14] [9] = true; grid_state[18] [9] = true
-    grid_state[15] [10] = true; grid_state[17] [10] = true
-    grid_state[16] [11] = true; 
-    grid_state[15] [12] = true; grid_state[17] [12] = true
-    grid_state[14] [13] = true; grid_state[18] [13] = true
-    grid_state[13] [14] = true; grid_state[19] [14] = true      
+    grid_state[156] [115] = true 
+    grid_state[155] [116] = true; grid_state[157] [116] = true
+    grid_state[154] [117] = true; grid_state[158] [117] = true
+    grid_state[153] [118] = true; grid_state[159] [118] = true
+    grid_state[154] [119] = true; grid_state[158] [119] = true
+    grid_state[155] [120] = true; grid_state[157] [120] = true
+    grid_state[156] [121] = true; 
+    grid_state[155] [122] = true; grid_state[157] [122] = true
+    grid_state[154] [123] = true; grid_state[158] [123] = true
+    grid_state[153] [124] = true; grid_state[159] [124] = true     
 
 }
