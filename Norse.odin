@@ -124,9 +124,10 @@ main :: proc() {
                         break game_loop
                     case .X:
                         zoom_level += zoom_step
-                        if zoom_level > 10 { 
+                        if zoom_level > 20 { 
                             zoom_level = 20
                         }
+                        
                         fmt.println("zoom_level  ", zoom_level)
                     case .Z:
                         zoom_level -= zoom_step
@@ -341,10 +342,13 @@ count_live_neighbours := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool, x, y: 
     live_neighbours :i32= 0
     for nx := x-1; nx <= x+1; nx += 1 {
         for ny := y-1; ny <= y+1; ny += 1 {
-            if nx >= 0 && ny >= 0 && nx < NUM_CELLS_X && ny < NUM_CELLS_Y && !(nx == x && ny == y) {
-                if grid_state[nx][ny] {
-                    live_neighbours += 1
-                }
+            // Wrap around horizontally
+            wrapped_nx := (nx + NUM_CELLS_X) % NUM_CELLS_X
+            // Wrap around vertically
+            wrapped_ny := (ny + NUM_CELLS_Y) % NUM_CELLS_Y
+
+            if !(wrapped_nx == x && wrapped_ny == y) && grid_state[wrapped_nx][wrapped_ny] {
+                live_neighbours += 1
             }
         }
     }
