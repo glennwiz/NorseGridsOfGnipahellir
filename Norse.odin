@@ -44,9 +44,6 @@ sim_speed_step :i32 = 5
 center_x := WINDOW_WIDTH / 2
 center_y := WINDOW_HEIGHT / 2
 
-offset_x := (NUM_CELLS_X * zoom_level / 2) - i32(center_x)
-offset_y := (NUM_CELLS_Y * zoom_level / 2) - i32(center_y)
-
 grid_state : GRID_STATE 
 next_grid_state : GRID_STATE 
 grid_state_history := make([dynamic]GRID_STATE, 5, 5)
@@ -70,6 +67,13 @@ CellState :: struct {
     y: i32,
     is_alive: bool
 }
+
+//we draw a cell a 300, 150 and need to move the render window to the center of the cell
+//we need to move the render window to 150, 75
+
+offset_x := (NUM_CELLS_X * zoom_level / 2) - i32(center_x)
+offset_y := (NUM_CELLS_Y * zoom_level / 2) - i32(center_y)
+
 
 game := Game{}
 
@@ -252,39 +256,8 @@ main :: proc() {
 
         if sim_running && counter % sim_speed == 0 {
             
-            zipper += 1
-
-            if bug_mode_flipper && bug_mode_flipper_count == 0 {
-                //TODO: Implement grid merge 
-            }
-
-            if bug_mode_flipper_count == 1  {
-                if zipper % 2 == 0 {
-                    
-                }
-            }
-
-
-                //simulate the next generation
-            for x :i32= 0; x < NUM_CELLS_X; x += 1 {
-                for y :i32= 0; y < NUM_CELLS_Y; y += 1 {  
-                    /*  
-                    Any live cell with fewer than two live neighbours dies, as if by underpopulation.
-                    Any live cell with two or three live neighbours lives on to the next generation.
-                    Any live cell with more than three live neighbours dies, as if by overpopulation.
-                    Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction. 
-                    */         
-                    live_neighbours := count_live_neighbours(grid_state, x , y );
-
-                    if bug_mode {
-                        grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours); 
-                        
-                    }
-
-                    next_grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);
-                }
-            } 
-
+            run_next_generation()
+            
             if !bug_mode {
                  // swap the grids
                 temp_grid := grid_state
@@ -328,6 +301,27 @@ main :: proc() {
          
          counter += 1      
     }
+}
+
+run_next_generation :: proc() {
+    //simulate the next generation
+    for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+        for y :i32= 0; y < NUM_CELLS_Y; y += 1 {  
+            /*  
+            Any live cell with fewer than two live neighbours dies, as if by underpopulation.
+            Any live cell with two or three live neighbours lives on to the next generation.
+            Any live cell with more than three live neighbours dies, as if by overpopulation.
+            Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction. 
+            */         
+            live_neighbours := count_live_neighbours(grid_state, x , y );
+
+            if bug_mode {
+                grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);
+            }
+
+            next_grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);
+        }
+    } 
 }
 
 count_alive_cells := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool) -> i32 {
@@ -437,10 +431,12 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
 draw_batch :: proc(x, y, width, height: i32, renderer: ^SDL.Renderer) {
     rect := SDL.Rect{
         x = x * CELL_SIZE * zoom_level,
-        y = y * CELL_SIZE * zoom_level,
+        y = y * CELL_SIZE * zoom_level,     
+
         w = width * CELL_SIZE * zoom_level,
         h = height * CELL_SIZE * zoom_level,
     }
+
     SDL.SetRenderDrawColor(renderer, 100, 0, 0, 255) 
     SDL.RenderFillRect(renderer, &rect)
 }
