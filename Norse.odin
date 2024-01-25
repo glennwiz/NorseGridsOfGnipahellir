@@ -215,8 +215,8 @@ main :: proc() {
             SDL.RenderDrawLine(game.renderer, x, 0, x, WINDOW_HEIGHT)
         } 
     
-        //get_rune_f();
-        get_rune_o();
+        get_rune_f();
+        //get_rune_o();
         //get_rune_r();
 
         append(&grid_state_history, grid_state)
@@ -399,7 +399,11 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
         return
     }    
 
+    //print location of the mouse
+    fmt.println("Mouse location: ", scaled_mouse_x, scaled_mouse_y)
+
     if grid_state[scaled_mouse_x][scaled_mouse_y] {
+
         fmt.println("Cell is alive")
     }
     else {
