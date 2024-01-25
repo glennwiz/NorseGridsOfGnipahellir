@@ -56,7 +56,7 @@ get_rune_r :: proc() {
     //     o     o
     //     o      o   
 
-    grid_state[156][115] = true;
+    grid_state[10][115] = true;
     grid_state[10][116] = true;  grid_state[11] [6] = true; 
     grid_state[10][117] = true;  grid_state[12] [7] = true; 
     grid_state[10][118] = true;  grid_state[13] [8] = true;

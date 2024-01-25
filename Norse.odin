@@ -33,7 +33,6 @@ cell_count :i32 = 0
 zoom_level :i32 = 20
 zoom_step :i32 = 2
 
-zipper :i32= 0
 bug_mode_flipper :bool = false
 bug_mode_flipper_count := 0
 bug_mode :bool = false
@@ -56,6 +55,13 @@ LogLevel :: enum {
     ERROR,
 } 
 
+Runes :: enum {
+    F,
+    O,
+    R,
+}
+
+Static_rune_render := Runes.O
 current_log_level := LogLevel.INFO
 
 Game :: struct {
@@ -183,6 +189,23 @@ main :: proc() {
                             bug_mode_flipper = !bug_mode_flipper
                             fmt.println("bug_mode_flipper  ", bug_mode_flipper)
                         }
+                    case .O:
+                        Static_rune_render = Runes.O
+                        fmt.println("Static_rune_render  ", Static_rune_render)
+                    case .F:
+                        Static_rune_render = Runes.F
+                        fmt.println("Static_rune_render  ", Static_rune_render)
+                    case .R:
+                        Static_rune_render = Runes.R
+                        fmt.println("Static_rune_render  ", Static_rune_render)     
+                    case .F1:
+                        //clear the grid
+                        for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+                            for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
+                                grid_state[x][y] = false
+                            }
+                        }                  
+
                 }
             }
 
@@ -215,14 +238,39 @@ main :: proc() {
             SDL.RenderDrawLine(game.renderer, x, 0, x, WINDOW_HEIGHT)
         } 
     
-        get_rune_f();
-        //get_rune_o();
-        //get_rune_r();
+        last_tick_rune := Static_rune_render
+        dont_render := false
+        if Static_rune_render != last_tick_rune
+        {
+            //clear the grid
+            for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+                for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
+                    grid_state[x][y] = false
+                }
+            }
+            dont_render = true
+        }
+
+        if Static_rune_render == Runes.O && !dont_render
+        {
+            get_rune_o();
+        }
+
+        if Static_rune_render == Runes.F && !dont_render
+        {
+            get_rune_f();
+        }
+                
+        if Static_rune_render == Runes.R && !dont_render
+        {
+            get_rune_r();
+        }
 
         append(&grid_state_history, grid_state)
 
         // Draw the cell at locations by the grid       
         for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
+            
             batch_start_x :i32= -1
             batch_width :i32= 0
         
@@ -345,7 +393,11 @@ count_alive_cells := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool) -> i32 {
     return alive_cells
 }
 
-
+/*
+    function count_live_neighbours calculates the number of live neighbors around a cell in a toroidal grid represented by grid_state. 
+    It uses nested loops to examine a 3x3 cell neighborhood centered at (x, y) while handling boundary wrapping. 
+    The function returns the count of live neighbors for the specified cell.
+*/
 count_live_neighbours := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool, x, y: i32) -> i32 {
     live_neighbours :i32= 0
     for nx := x-1; nx <= x+1; nx += 1 {
