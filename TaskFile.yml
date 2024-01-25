@@ -1,6 +1,12 @@
 version: '3'
 
 tasks:
+  run:
+    cmds:
+      - echo 'Building Odin'
+      - odin run .
+      - cat log.txt
+    #silent: true    
   build:
     cmds:
       - echo 'Building Odin'
