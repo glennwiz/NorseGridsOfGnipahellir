@@ -20,7 +20,7 @@ WINDOW_FLAGS :: SDL.WINDOW_SHOWN
 RENDER_FLAGS :: SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
 TARGET_DT :: 1000 / 100
-GRID_STATE :: [NUM_CELLS_X][NUM_CELLS_Y]bool
+GRID_STATE :: [NUM_CELLS_X][NUM_CELLS_Y]CellState
 CELL_SIZE :: 1
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
@@ -89,6 +89,18 @@ game := Game{}
 main :: proc() { 
     logger("Starting Norse grids!", LogLevel.INFO)
 
+    // Initialize the grid
+    for i :i32= 0; i < WINDOW_WIDTH ; i += 1 {
+        fmt.println("i: ", i)
+        for j :i32= 0; j < WINDOW_HEIGHT; j += 1 {
+            fmt.println("j: ", j)
+
+            grid_state[i][j] = CellState{i, j, false}
+        }
+    } 
+
+    logger("After Grid initialize!", LogLevel.INFO)
+
     assert(SDL.Init(SDL.INIT_VIDEO) == 0, SDL.GetErrorString())
     assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, SDL.GetErrorString())
     defer SDL.Quit()
@@ -101,14 +113,14 @@ main :: proc() {
         WINDOW_HEIGHT,
         WINDOW_FLAGS| SDL.WINDOW_BORDERLESS,   
     )
-
+    logger("1", LogLevel.INFO)
     assert(window != nil, SDL.GetErrorString())
     defer SDL.DestroyWindow(window)
 
     game.renderer = SDL.CreateRenderer(window, -1, RENDER_FLAGS)
     assert(game.renderer != nil, SDL.GetErrorString())
     defer SDL.DestroyRenderer(game.renderer)
-
+    logger("2", LogLevel.INFO)
     game.perf_frequency = f64(SDL.GetPerformanceFrequency())
     start : f64
     end : f64
@@ -116,10 +128,10 @@ main :: proc() {
     event : SDL.Event
 
     is_mouse_button_down : bool = false
-
+    logger("3", LogLevel.INFO)
     game_loop : for {
         start = get_time()       
-   
+        logger("4", LogLevel.INFO)
         run_draw_sync();
 
         // Input Handling
@@ -202,13 +214,13 @@ main :: proc() {
                         //clear the grid
                         for x :i32= 0; x < NUM_CELLS_X; x += 1 {
                             for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
-                                grid_state[x][y] = false
+                                grid_state[x][y].is_alive = false
                             }
                         }                  
 
                 }
             }
-
+            logger("5", LogLevel.INFO)
             // Handle Mouse Input  
             if event.type == SDL.EventType.MOUSEBUTTONDOWN {
                 is_mouse_button_down = true
@@ -230,7 +242,7 @@ main :: proc() {
                 }
             }
         }       
-
+        logger("6", LogLevel.INFO)
         // Drawing gradient from black to grey
         for x :i32= 0; x < WINDOW_WIDTH; x += 1 {
             fade := u8(f32(x) / f32(WINDOW_WIDTH) * 60)
@@ -245,14 +257,16 @@ main :: proc() {
             //clear the grid
             for x :i32= 0; x < NUM_CELLS_X; x += 1 {
                 for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
-                    grid_state[x][y] = false
+                    grid_state[x][y].is_alive = false
                 }
             }
             dont_render = true
         }
-
+        logger("7", LogLevel.INFO)
         if Static_rune_render == Runes.O && !dont_render
         {
+            
+            logger("7.1", LogLevel.INFO)
             get_rune_o();
         }
 
@@ -265,9 +279,8 @@ main :: proc() {
         {
             get_rune_r();
         }
-
-        append(&grid_state_history, grid_state)
-
+        
+        logger("8", LogLevel.INFO)
         // Draw the cell at locations by the grid       
         for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
             
@@ -275,7 +288,7 @@ main :: proc() {
             batch_width :i32= 0
         
             for x :i32= 0; x < NUM_CELLS_X; x += 1 {
-                if grid_state[x][y] {
+                if grid_state[x][y].is_alive {
                     if batch_start_x == -1 {
                         batch_start_x = x
                     }
@@ -321,8 +334,6 @@ main :: proc() {
                 grid_state = next_grid_state
                 next_grid_state = temp_grid
             }
-
-            append(&grid_state_history, grid_state)
         }
 
          // Frame rate management
@@ -373,19 +384,19 @@ run_next_generation :: proc() {
             live_neighbours := count_live_neighbours(grid_state, x , y );
 
             if bug_mode {
-                grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);
+                grid_state[x][y].is_alive = update_cell_state(grid_state[x][y].is_alive, live_neighbours);
             }
 
-            next_grid_state[x][y] = update_cell_state(grid_state[x][y], live_neighbours);
+            next_grid_state[x][y].is_alive = update_cell_state(grid_state[x][y].is_alive, live_neighbours);
         }
     } 
 }
 
-count_alive_cells := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool) -> i32 {
+count_alive_cells := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]CellState) -> i32 {
     alive_cells :i32= 0
     for x :i32= 0; x < NUM_CELLS_X; x += 1 {
         for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
-            if grid_state[x][y] {
+            if grid_state[x][y].is_alive {
                 alive_cells += 1
             }
         }
@@ -398,7 +409,7 @@ count_alive_cells := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool) -> i32 {
     It uses nested loops to examine a 3x3 cell neighborhood centered at (x, y) while handling boundary wrapping. 
     The function returns the count of live neighbors for the specified cell.
 */
-count_live_neighbours := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool, x, y: i32) -> i32 {
+count_live_neighbours := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]CellState, x, y: i32) -> i32 {
     live_neighbours :i32= 0
     for nx := x-1; nx <= x+1; nx += 1 {
         for ny := y-1; ny <= y+1; ny += 1 {
@@ -407,7 +418,7 @@ count_live_neighbours := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]bool, x, y: 
             // Wrap around vertically
             wrapped_ny := (ny + NUM_CELLS_Y) % NUM_CELLS_Y
 
-            if !(wrapped_nx == x && wrapped_ny == y) && grid_state[wrapped_nx][wrapped_ny] {
+            if !(wrapped_nx == x && wrapped_ny == y) && grid_state[wrapped_nx][wrapped_ny].is_alive {
                 live_neighbours += 1
             }
         }
@@ -454,7 +465,7 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
     //print location of the mouse
     fmt.println("Mouse location: ", scaled_mouse_x, scaled_mouse_y)
 
-    if grid_state[scaled_mouse_x][scaled_mouse_y] {
+    if grid_state[scaled_mouse_x][scaled_mouse_y].is_alive {
 
         fmt.println("Cell is alive")
     }
@@ -463,7 +474,7 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
     }   
 
     // Check if the mouse loc is false
-    if !grid_state[scaled_mouse_x][scaled_mouse_y] {
+    if !grid_state[scaled_mouse_x][scaled_mouse_y].is_alive {
         
         if !is_set {
             fmt.println("Cell is dead------------")
@@ -473,13 +484,13 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
         }   
         
         if is_set{
-            grid_state[scaled_mouse_x][scaled_mouse_y] = cell_life
+            grid_state[scaled_mouse_x][scaled_mouse_y].is_alive = cell_life
         }  
         return 
     }
 
     // Check if the mouse loc is true
-    if grid_state[scaled_mouse_x][scaled_mouse_y] {
+    if grid_state[scaled_mouse_x][scaled_mouse_y].is_alive {
 
         if !is_set {
             fmt.println("Cell is alive-----------")
@@ -489,14 +500,14 @@ handle_mouse_input :: proc(mouse_x, mouse_y : i32, is_mouse_button_down : bool) 
         }   
         
         if is_set{
-            grid_state[scaled_mouse_x][scaled_mouse_y] = cell_life
+            grid_state[scaled_mouse_x][scaled_mouse_y].is_alive = cell_life
         }  
 
         return
     }
 
     if is_set{
-        grid_state[scaled_mouse_x][scaled_mouse_y] = cell_life
+        grid_state[scaled_mouse_x][scaled_mouse_y].is_alive = cell_life
     }    
 }
 
