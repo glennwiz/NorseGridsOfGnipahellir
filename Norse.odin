@@ -44,8 +44,8 @@ grid_show :bool = false
 center_x := WINDOW_WIDTH / 2
 center_y := WINDOW_HEIGHT / 2
 
-grid_state : GRID_STATE 
-next_grid_state : GRID_STATE 
+grid_state : ^GRID_STATE 
+next_grid_state : ^GRID_STATE 
 grid_state_history := make([dynamic]GRID_STATE, 5, 5)
 
 LogLevel :: enum {
@@ -392,7 +392,7 @@ run_next_generation :: proc() {
     } 
 }
 
-count_alive_cells := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]CellState) -> i32 {
+count_alive_cells := proc(grid_state: ^[NUM_CELLS_X][NUM_CELLS_Y]CellState) -> i32 {
     alive_cells :i32= 0
     for x :i32= 0; x < NUM_CELLS_X; x += 1 {
         for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
@@ -409,7 +409,7 @@ count_alive_cells := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]CellState) -> i3
     It uses nested loops to examine a 3x3 cell neighborhood centered at (x, y) while handling boundary wrapping. 
     The function returns the count of live neighbors for the specified cell.
 */
-count_live_neighbours := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]CellState, x, y: i32) -> i32 {
+count_live_neighbours := proc(grid_state: ^[NUM_CELLS_X][NUM_CELLS_Y]CellState, x, y: i32) -> i32 {
     live_neighbours :i32= 0
     for nx := x-1; nx <= x+1; nx += 1 {
         for ny := y-1; ny <= y+1; ny += 1 {
