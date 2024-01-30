@@ -1,6 +1,7 @@
 package gnipahellir
 
 import "core:fmt"
+import "core:math/rand"
 import "core:os"
 import "core:mem"
 import "core:runtime"
@@ -86,20 +87,55 @@ range_end :i32= 20
 game := Game{}
 
 main :: proc() { 
+
+    my_rand := rand.create(656565)
+	fmt.println(rand.uint64(&my_rand))    
     
     fmt.println("Starting Norse grids!", LogLevel.INFO)
 
-   // Initialize each cell in the grid
-   for i := 0; i < NUM_CELLS_X; i += 1{
-       for j := 0; j < NUM_CELLS_Y; j += 1{
-           grid_state[i][j] = CellState{i32(i), i32(j), false} // Cast i and j to i32
-       }
-   }
-
-   //print all cells   
+    // Initialize each cell in the grid
     for i := 0; i < NUM_CELLS_X; i += 1{
-         for j := 0; j < NUM_CELLS_Y; j += 1{
-              fmt.println(grid_state[i][j].x, " ", grid_state[i][j].y, " ", grid_state[i][j].is_alive, LogLevel.DEBUG)
+        for j := 0; j < NUM_CELLS_Y; j += 1{
+            grid_state[i][j] = CellState{i32(i), i32(j), false} // Cast i and j to i32
+        }
+    }
+
+    //print all cells   
+    for i := 0; i < NUM_CELLS_X; i += 1{
+         for j := 0; j < NUM_CELLS_Y; j += 1{      
+
+              //set random cells to alive
+                if rand.uint64(&my_rand) % 2 == 0 {
+                    grid_state[i][j].is_alive = true
+                }
          }
     }
+
+    // print grid
+    if false{
+
+        for i := 0; i < NUM_CELLS_X; i += 1{
+            for j := 0; j < NUM_CELLS_Y; j += 1{
+                if grid_state[i][j].is_alive {
+                    fmt.print("O")
+                } else {
+                    fmt.print(" ")
+                }
+            }
+            fmt.println("")
+        }
+
+    }
+   
+    //set random color
+    r := u8(rand.uint64(&my_rand)) % 255
+    g := u8(rand.uint64(&my_rand)) % 255
+    b := u8(rand.uint64(&my_rand)) % 255
+
+    //set random color
+    c := SDL.Color{r, g, b, 255}
+
+    //change the console color
+    fmt.print("\x1b[38;2;", r, ";", g, ";", b, "m")
+
 }
