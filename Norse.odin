@@ -20,7 +20,6 @@ WINDOW_FLAGS :: SDL.WINDOW_SHOWN
 RENDER_FLAGS :: SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
 TARGET_DT :: 1000 / 100
-GRID_STATE :: [NUM_CELLS_X][NUM_CELLS_Y]Cell
 CELL_SIZE :: 1
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
@@ -46,7 +45,10 @@ center_y := WINDOW_HEIGHT / 2
 
 grid_state : [NUM_CELLS_X][NUM_CELLS_Y]Cell
 next_grid_state : [NUM_CELLS_X][NUM_CELLS_Y]Cell
-
+Game :: struct {
+    perf_frequency: f64,
+    renderer: ^SDL.Renderer,
+}
 
 Cell :: struct {
     x: i32,
@@ -63,15 +65,27 @@ offset_y :i32= -2160
 range_start :i32= 2
 range_end :i32= 20
 
+game := Game{}
 
 main :: proc() { 
     fmt.println("Starting Norse grids!")
 
-    //lets make a window
-    window := SDL.CreateWindow(TITLE, SDL.WINDOWPOS_UNDEFINED, SDL.WINDOWPOS_UNDEFINED, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_FLAGS)
-    if window == nil {
-        fmt.println("Could not create window: ", SDL.GetError())
-        return
+    grid_state = [NUM_CELLS_X][NUM_CELLS_Y]Cell{}
+
+    game_loop : for {
+    
+        fmt.println("Starting game loop")
+        //randomize_grid_state()
+        for i := 0; i < NUM_CELLS_X; i += 1 {
+            for j := 0; j < NUM_CELLS_Y; j += 1 {
+                grid_state[i][j].is_alive = true
+            }
+        }
     }
        
+}
+
+get_time :: proc() -> f64 {
+    PERF_COUNT = SDL.GetPerformanceCounter()   
+    return f64(PERF_COUNT) * 1000 / game.perf_frequency
 }
