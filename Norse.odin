@@ -1,91 +1,104 @@
-package gnipahellir
+package Gnipahellir
 
 import "core:fmt"
-import "core:os"
-import "core:mem"
-import "core:runtime"
-import "core:strconv"
-import "core:unicode/utf8"
-import "core:strings"
-import SDL "vendor:sdl2"
-import SDL_Image "vendor:sdl2/image"
-import SDL_TTF "vendor:sdl2/ttf"
-import "core:time"
-//import file runes.odin    
+import "core:math/linalg"
+import "vendor:sdl2"
 
-
-TITLE :: "Gnipahellir"
-TITLE_BAR_HEIGHT :: 30
-WINDOW_FLAGS :: SDL.WINDOW_SHOWN
-RENDER_FLAGS :: SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
-TARGET_DT :: 1000 / 100
-CELL_SIZE :: 1
-NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
-NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
-PERF_COUNT :u64= 0
 
-cell_life :bool
-is_set :bool
-cell_count :i32 = 0
+Game :: struct {
+	renderer: ^sdl2.Renderer,
+	keyboard: []u8,
+	time:     f64,
+	dt:       f64,
+}
 
 zoom_level :i32 = 20
-zoom_step :i32 = 2
-
-bug_mode_flipper :bool = false
-bug_mode_flipper_count := 0
-bug_mode :bool = false
-sim_running :bool
-sim_speed :i32 = 60
-sim_speed_step :i32 = 5
-grid_show :bool = false
-
-center_x := WINDOW_WIDTH / 2
-center_y := WINDOW_HEIGHT / 2
-
-grid_state : [NUM_CELLS_X][NUM_CELLS_Y]Cell
-next_grid_state : [NUM_CELLS_X][NUM_CELLS_Y]Cell
-Game :: struct {
-    perf_frequency: f64,
-    renderer: ^SDL.Renderer,
-}
-
-Cell :: struct {
-    x: i32,
-    y: i32,
-    is_alive: bool
-}
-
-offset_x_o :i32= -2800
-offset_y_o :i32= -2160
-
-offset_x :i32= -2800
-offset_y :i32= -2160
-
-range_start :i32= 2
-range_end :i32= 20
-
-game := Game{}
-
-main :: proc() { 
-    fmt.println("Starting Norse grids!")
-
-    grid_state = [NUM_CELLS_X][NUM_CELLS_Y]Cell{}
-
-    game_loop : for {
-    
-        fmt.println("Starting game loop")
-        //randomize_grid_state()
-        for i := 0; i < NUM_CELLS_X; i += 1 {
-            for j := 0; j < NUM_CELLS_Y; j += 1 {
-                grid_state[i][j].is_alive = true
-            }
-        }
-    }
-       
-}
 
 get_time :: proc() -> f64 {
-    PERF_COUNT = SDL.GetPerformanceCounter()   
-    return f64(PERF_COUNT) * 1000 / game.perf_frequency
+	return f64(sdl2.GetPerformanceCounter()) * 1000 / f64(sdl2.GetPerformanceFrequency())
+}
+
+main :: proc() {
+	assert(sdl2.Init(sdl2.INIT_VIDEO) == 0, sdl2.GetErrorString())
+	defer sdl2.Quit()
+
+	window := sdl2.CreateWindow(
+		"Norse Grids",
+		sdl2.WINDOWPOS_CENTERED,
+		sdl2.WINDOWPOS_CENTERED,
+		WINDOW_WIDTH,
+		WINDOW_HEIGHT,
+		sdl2.WINDOW_SHOWN,
+	)
+	assert(window != nil, sdl2.GetErrorString())
+	defer sdl2.DestroyWindow(window)
+
+	// Must not do VSync because we run the tick loop on the same thread as rendering.
+	renderer := sdl2.CreateRenderer(window, -1, sdl2.RENDERER_ACCELERATED)
+	assert(renderer != nil, sdl2.GetErrorString())
+	defer sdl2.DestroyRenderer(renderer)
+
+	tickrate := 10.0
+	ticktime := 1000.0 / tickrate
+
+    CELL_SIZE :: 1
+    NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
+    NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
+
+	game := Game {
+		renderer = renderer,
+		time     = get_time(),
+		dt       = ticktime,	
+	}
+	//TODO: add the cell and grid here
+
+	dt := 0.0
+
+	for {
+		event: sdl2.Event
+		for sdl2.PollEvent(&event) {
+			#partial switch event.type {
+			case .QUIT:
+				return
+			case .KEYDOWN:
+				if event.key.keysym.scancode == sdl2.SCANCODE_ESCAPE {
+					return
+				}
+			}
+		}
+
+        // Drawing gradient from black to grey
+        for x :i32= 0; x < WINDOW_WIDTH; x += 1 {
+            fade := u8(f32(x) / f32(WINDOW_WIDTH) * 60)
+            sdl2.SetRenderDrawColor(game.renderer, fade, fade, fade, 255)
+            sdl2.RenderDrawLine(game.renderer, x, 0, x, WINDOW_HEIGHT)
+        } 
+
+        sdl2.SetRenderDrawColor(game.renderer, 0, 0, 0, 255) // Set color to black
+
+        for x :i32= 0; x < WINDOW_WIDTH; x += zoom_level {
+            sdl2.RenderDrawLine(game.renderer,  x, 0, x, WINDOW_HEIGHT)       
+        }
+
+        // Drawing black horizontal lines spaced 5 pixels apart
+        for y :i32= 0; y < WINDOW_HEIGHT; y +=  zoom_level {
+            sdl2.RenderDrawLine(game.renderer, 0, y, WINDOW_WIDTH, y)       
+        }
+
+		time := get_time()
+		dt += time - game.time
+
+		game.keyboard = sdl2.GetKeyboardStateAsSlice()
+		game.time = time
+
+		// Running on the same thread as rendering so in the end still limited by the rendering FPS.
+		for dt >= ticktime {
+			dt -= ticktime
+
+			fmt.printf("FPS: {}\n", 1000.0 / game.dt)
+		}
+	
+		sdl2.RenderPresent(renderer)
+	}
 }
