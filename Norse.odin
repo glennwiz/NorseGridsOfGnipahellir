@@ -6,6 +6,10 @@ import "vendor:sdl2"
 
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
 
+CELL_SIZE :: 1
+NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
+NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
+
 Game :: struct {
 	renderer: ^sdl2.Renderer,
 	keyboard: []u8,
