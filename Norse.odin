@@ -6,11 +6,27 @@ import "vendor:sdl2"
 
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
 
+
+
 Game :: struct {
 	renderer: ^sdl2.Renderer,
 	keyboard: []u8,
 	time:     f64,
 	dt:       f64,
+}
+
+Cell :: struct {
+    x: i32,
+    y: i32,
+    is_alive: bool,
+	color: Vec4
+}
+
+Vec4 :: struct {
+	x: f32,
+	y: f32,
+	z: f32,
+	w: f32
 }
 
 zoom_level :i32 = 20
@@ -46,16 +62,25 @@ main :: proc() {
     NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
     NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
+	grid :: [NUM_CELLS_X][NUM_CELLS_Y]Cell
+
 	game := Game {
 		renderer = renderer,
 		time     = get_time(),
 		dt       = ticktime,	
 	}
-	//TODO: add the cell and grid here
 
 	dt := 0.0
 
-	for {
+	game_loop : for {
+
+		// we need to check cell states and update them here
+		// we also need to draw the cells here
+
+		//the game loop updates a freaking lot so lets some % modulo to update the cells every 10th frame or so, oh and lets add pluss and minus for update speed
+		//also lets add a pause button 'space' and a clear button 'c'
+
+
 		event: sdl2.Event
 		for sdl2.PollEvent(&event) {
 			#partial switch event.type {
