@@ -4,9 +4,10 @@ import "core:fmt"
 import "core:math/linalg"
 import "vendor:sdl2"
 
-WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
-
-
+WINDOW_WIDTH, WINDOW_HEIGHT :: 100, 100
+CELL_SIZE :: 1
+NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
+NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
 Game :: struct {
 	renderer: ^sdl2.Renderer,
@@ -15,18 +16,15 @@ Game :: struct {
 	dt:       f64,
 }
 
+Vec4 :: struct {
+	a: f32,
+}
+
 Cell :: struct {
     x: i32,
     y: i32,
     is_alive: bool,
 	color: Vec4
-}
-
-Vec4 :: struct {
-	x: f32,
-	y: f32,
-	z: f32,
-	w: f32
 }
 
 zoom_level :i32 = 20
@@ -57,12 +55,7 @@ main :: proc() {
 
 	tickrate := 10.0
 	ticktime := 1000.0 / tickrate
-
-    CELL_SIZE :: 1
-    NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
-    NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
-
-	grid :: [NUM_CELLS_X][NUM_CELLS_Y]Cell
+	// Correctly create a dynamic array of Cells with initial length 0 and capacity 10
 
 	game := Game {
 		renderer = renderer,
@@ -72,13 +65,20 @@ main :: proc() {
 
 	dt := 0.0
 
+	cell_grid := [WINDOW_HEIGHT][WINDOW_WIDTH]Cell{}	//Large fixed arrays break LLVM so we need to use a dynamic array instead
+
 	game_loop : for {
 
 		// we need to check cell states and update them here
 		// we also need to draw the cells here
 
-		//the game loop updates a freaking lot so lets some % modulo to update the cells every 10th frame or so, oh and lets add pluss and minus for update speed
+		//the game loop updates a freaking lot so lets some % modulo to update the cells every 60th frame or so, oh and lets add pluss and minus for update speed
 		//also lets add a pause button 'space' and a clear button 'c'
+
+		//lets loop over the cells and draw them
+	
+		fmt.printf("FPS: {}\n", 1000.0 / game.dt)
+		//fmt.printf("cellstate: {}\n", cell_grid[0][0].is_alive)
 
 
 		event: sdl2.Event
