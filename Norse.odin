@@ -4,8 +4,9 @@ import "core:fmt"
 import "core:math/linalg"
 import "vendor:sdl2"
 
-WINDOW_WIDTH, WINDOW_HEIGHT :: 100, 100
-CELL_SIZE :: 1
+WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 320
+GRID_STATE :: [dynamic][dynamic]Cell
+CELL_SIZE :: 5
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
@@ -17,7 +18,10 @@ Game :: struct {
 }
 
 Vec4 :: struct {
-	a: f32,
+	r: u8,
+	g: u8,
+	b: u8,
+	a: u8,
 }
 
 Cell :: struct {
@@ -55,7 +59,6 @@ main :: proc() {
 
 	tickrate := 10.0
 	ticktime := 1000.0 / tickrate
-	// Correctly create a dynamic array of Cells with initial length 0 and capacity 10
 
 	game := Game {
 		renderer = renderer,
@@ -64,8 +67,29 @@ main :: proc() {
 	}
 
 	dt := 0.0
+    cell_grid:= make([dynamic][dynamic]Cell, 100, 100)
+		
+    dyn := make([dynamic]int, 5, 5)
 
-	cell_grid := [WINDOW_HEIGHT][WINDOW_WIDTH]Cell{}	//Large fixed arrays break LLVM so we need to use a dynamic array instead
+	fmt.println("screen_width: ", WINDOW_WIDTH)
+	fmt.println("screen_height: ", WINDOW_HEIGHT)
+	fmt.println("cell_size: ", CELL_SIZE)
+	fmt.println("num_cells_x: ", NUM_CELLS_X)
+	fmt.println("num_cells_y: ", NUM_CELLS_Y)
+	
+    for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
+        for x :i32= 0; x < NUM_CELLS_X; x += 1 {       
+            cell_grid[y][x].is_alive = false
+        }
+    }
+
+	// Calculate middle cell coordinates
+	middle_x := NUM_CELLS_X / 2
+	middle_y := NUM_CELLS_Y / 2
+
+	// Set the middle cell's color to red (RGBA: 255, 0, 0, 255)
+	cell_grid[middle_y][middle_x].color = Vec4{255, 0, 0, 255}
+	cell_grid[middle_y][middle_x].is_alive = true 
 
 	game_loop : for {
 
@@ -75,10 +99,35 @@ main :: proc() {
 		//the game loop updates a freaking lot so lets some % modulo to update the cells every 60th frame or so, oh and lets add pluss and minus for update speed
 		//also lets add a pause button 'space' and a clear button 'c'
 
-		//lets loop over the cells and draw them
+		//lets loop over the cells and draw them		
+
+		for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
+			for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+				cell := cell_grid[y][x]
+				if cell.is_alive {
+					// Convert Vec4 color to SDL color and set it
+					sdl2.SetRenderDrawColor(game.renderer, u8(cell.color.r), u8(cell.color.g), u8(cell.color.b), 255) // Adjust the fields based on your Vec4 structure
+					
+					rect := sdl2.Rect{
+						x = x * CELL_SIZE * zoom_level,
+						y = y * CELL_SIZE * zoom_level,     
+				
+						w = 5 * CELL_SIZE * zoom_level,
+						h = 5 * CELL_SIZE * zoom_level,
+					}					
+					
+					sdl2.RenderFillRect(game.renderer, &rect)
+				}
+			}
+		}
+		
+
+
 	
 		fmt.printf("FPS: {}\n", 1000.0 / game.dt)
 		//fmt.printf("cellstate: {}\n", cell_grid[0][0].is_alive)
+
+
 
 
 		event: sdl2.Event
