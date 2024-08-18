@@ -1,6 +1,8 @@
 # Norse Grids Game Code Breakdown
 ![image](https://github.com/glennwiz/NorseGridsOfGnipahellir/assets/195927/7940b2de-0b9d-4707-a1d6-dfa36008548b)
 
+![alt text](WindowsTerminal_cANHRhhXL5.gif)
+
 # Runes of Conway's Game of Life #
 
 This code is for a simple grid-based game using SDL2 in Odin language. Let's go through it in the world of gnipahellir.
