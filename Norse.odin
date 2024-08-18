@@ -3,7 +3,7 @@ package gnipahellir
 import "core:fmt"
 import "core:os"
 import "core:mem"
-import "core:runtime"
+import "base:runtime"
 import "core:strconv"
 import "core:unicode/utf8"
 import "core:strings"
@@ -20,33 +20,39 @@ WINDOW_FLAGS :: SDL.WINDOW_SHOWN
 RENDER_FLAGS :: SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
 TARGET_DT :: 1000 / 100
-GRID_STATE :: [NUM_CELLS_X][NUM_CELLS_Y]bool
 CELL_SIZE :: 1
+
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
-PERF_COUNT :u64= 0
+GRID_STATE  :: [NUM_CELLS_X][NUM_CELLS_Y]bool
 
-cell_life :bool
-is_set :bool
-cell_count :i32 = 0
+PERF_COUNT              :u64= 0
 
-zoom_level :i32 = 20
-zoom_step :i32 = 2
+cell_life               :bool
+is_set                  :bool
+cell_count              :i32 = 0
 
-bug_mode_flipper :bool = false
-bug_mode_flipper_count := 0
-bug_mode :bool = false
-sim_running :bool
-sim_speed :i32 = 60
-sim_speed_step :i32 = 5
-grid_show :bool = false
+zoom_level              :i32 = 20
+zoom_step               :i32 = 2
+
+bug_mode_flipper        :bool = false
+bug_mode_flipper_count  := 0
+bug_mode                :bool = false
+sim_running             :bool
+sim_speed               :i32 = 60
+sim_speed_step          :i32 = 5
+grid_show               :bool = false
 
 center_x := WINDOW_WIDTH / 2
 center_y := WINDOW_HEIGHT / 2
 
-grid_state : GRID_STATE 
-next_grid_state : GRID_STATE 
+grid_state              : GRID_STATE 
+next_grid_state         : GRID_STATE 
 grid_state_history := make([dynamic]GRID_STATE, 5, 5)
+
+Grid :: struct {
+    cells: ^[NUM_CELLS_X * NUM_CELLS_Y]bool,
+}
 
 LogLevel :: enum {
     DEBUG,
@@ -59,6 +65,7 @@ Runes :: enum {
     F,
     O,
     R,
+    Empty,
 }
 
 Static_rune_render := Runes.O
@@ -116,7 +123,7 @@ main :: proc() {
     event : SDL.Event
 
     is_mouse_button_down : bool = false
-
+    print_commands();
     game_loop : for {
         start = get_time()       
    
@@ -127,6 +134,7 @@ main :: proc() {
             if event.type == SDL.EventType.QUIT {
                 break game_loop
             }
+           
 
             // Handle Keyboard Input
             if event.type == SDL.EventType.KEYDOWN {
@@ -190,22 +198,19 @@ main :: proc() {
                             fmt.println("bug_mode_flipper  ", bug_mode_flipper)
                         }
                     case .O:
+                        Clear();
                         Static_rune_render = Runes.O
                         fmt.println("Static_rune_render  ", Static_rune_render)
                     case .F:
+                        Clear();
                         Static_rune_render = Runes.F
                         fmt.println("Static_rune_render  ", Static_rune_render)
                     case .R:
+                        Clear();
                         Static_rune_render = Runes.R
                         fmt.println("Static_rune_render  ", Static_rune_render)     
                     case .F1:
-                        //clear the grid
-                        for x :i32= 0; x < NUM_CELLS_X; x += 1 {
-                            for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
-                                grid_state[x][y] = false
-                            }
-                        }                  
-
+                         Clear();
                 }
             }
 
@@ -258,6 +263,7 @@ main :: proc() {
 
         if Static_rune_render == Runes.F && !dont_render
         {
+            //fmt.println("Static_rune_render  ", Static_rune_render)
             get_rune_f();
         }
                 
@@ -358,6 +364,30 @@ main :: proc() {
          
          counter += 1      
     }
+}
+
+Clear :: proc()   { // Clear the grid and reset all related variables
+    //Print the Static_rune_render
+    Static_rune_render = Runes.Empty
+    for x :i32= 0; x < NUM_CELLS_X; x += 1 {
+        for y :i32= 0; y < NUM_CELLS_Y; y += 1 {
+            grid_state[x][y] = false
+            next_grid_state[x][y] = false
+        }
+    }
+
+    sim_running = false
+    bug_mode = false
+    bug_mode_flipper = false
+    bug_mode_flipper_count = 0 
+    offset_x = offset_x_o
+    offset_y = offset_y_o
+    
+    // Clear the grid state history
+    clear(&grid_state_history)
+    
+    logger("Screen cleared and all settings reset", LogLevel.INFO)
+    run_draw_sync()  // Update the display
 }
 
 run_next_generation :: proc() {
@@ -568,4 +598,27 @@ turn_on_off_grid :: proc(){
     else{
         grid_show = false
     }
+}
+
+print_commands :: proc() {
+    fmt.println("Available Commands:")
+    fmt.println("------------------")
+    fmt.println("Keyboard Commands:")
+    fmt.println("1. ESCAPE: Exit the game loop")
+    fmt.println("2. X: Increase zoom level")
+    fmt.println("3. Z: Decrease zoom level")
+    fmt.println("4. SPACE: Toggle simulation running state")
+    fmt.println("5. COMMA: Increase simulation speed")
+    fmt.println("6. PERIOD: Decrease simulation speed")
+    fmt.println("7. D: Set log level to DEBUG")
+    fmt.println("8. M: Toggle bug mode")
+    fmt.println("9. N: Toggle bug mode flipper")
+    fmt.println("10. O: Set Static_rune_render to Runes.O")
+    fmt.println("11. F: Set Static_rune_render to Runes.F")
+    fmt.println("12. R: Set Static_rune_render to Runes.R")
+    fmt.println("13. F1: Clear the grid")
+    fmt.println()
+    fmt.println("Mouse Commands:")
+    fmt.println("14. Left mouse button click: Toggle cell state")
+    fmt.println("15. Left mouse button drag: Draw cells")
 }

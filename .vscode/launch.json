@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Odin: Run Current Project",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "odin run .",
+            "cwd": "${workspaceFolder}",
+            "args": []
+        }
+    ]
+}
