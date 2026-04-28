@@ -48,7 +48,7 @@ center_y := WINDOW_HEIGHT / 2
 
 grid_state: GRID_STATE
 next_grid_state: GRID_STATE
-grid_state_history := make([dynamic]GRID_STATE, 5, 5)
+grid_state_history: [dynamic]GRID_STATE
 
 Grid :: struct {
 	cells: ^[NUM_CELLS_X * NUM_CELLS_Y]bool,
@@ -94,6 +94,7 @@ range_end: i32 = 20
 game := Game{}
 
 main :: proc() {
+	grid_state_history = make([dynamic]GRID_STATE, 5, 5)
 	logger("Starting Norse grids!", LogLevel.INFO)
 
 
@@ -562,7 +563,7 @@ logger :: proc(msg: string, level: LogLevel = LogLevel.INFO, logFilePath: string
 
 	fmt.println(msg)
 	// Open or create the log file for appending
-	file, err := os.open(logFilePath, os.O_WRONLY | os.O_APPEND | os.O_CREATE, 0666) // Adjust the mode flags and permissions as needed
+	file, err := os.open(logFilePath, os.O_WRONLY | os.O_APPEND | os.O_CREATE, os.perm_number(0o666)) // Adjust the mode flags and permissions as needed
 	if err != os.ERROR_NONE {
 		fmt.eprintln("Failed to open log file:", err)
 		os.exit(1)
