@@ -20,9 +20,6 @@ zoom_step: i32 = 2
 ZOOM_MIN :: 2
 ZOOM_MAX :: 20
 
-bug_mode_flipper: bool = false
-bug_mode_flipper_count := 0
-bug_mode: bool = false
 sim_running: bool
 sim_speed: i32 = 60
 sim_speed_step: i32 = 5
@@ -132,13 +129,9 @@ main :: proc() {
 		rl.EndDrawing()
 
 		if sim_running && counter % sim_speed == 0 {
-
 			run_next_generation()
-
-			if !bug_mode {
-				// swap the buffers (O(1) pointer swap)
-				grid_state, next_grid_state = next_grid_state, grid_state
-			}
+			// swap the buffers (O(1) pointer swap)
+			grid_state, next_grid_state = next_grid_state, grid_state
 		}
 
 		counter += 1
@@ -158,9 +151,6 @@ Clear :: proc() { 	// Clear the grid and reset all related variables
 	}
 
 	sim_running = false
-	bug_mode = false
-	bug_mode_flipper = false
-	bug_mode_flipper_count = 0
 
 	update_camera() // recentre the view
 }
@@ -176,21 +166,10 @@ run_next_generation :: proc() {
             Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
             */
 			live_neighbours := count_live_neighbours(grid_state, x, y)
-
-			if bug_mode {
-				grid_state[x][y].alive = update_cell_state(grid_state[x][y].alive, live_neighbours)
-				next_grid_state[x][y].alive = update_cell_state(
-					grid_state[x][y].alive,
-					live_neighbours,
-				)
-
-			} else {
-
-				next_grid_state[x][y].alive = update_cell_state(
-					grid_state[x][y].alive,
-					live_neighbours,
-				)
-			}
+			next_grid_state[x][y].alive = update_cell_state(
+				grid_state[x][y].alive,
+				live_neighbours,
+			)
 		}
 	}
 }
@@ -282,16 +261,14 @@ print_commands :: proc() {
 	fmt.println("4. SPACE: Toggle simulation running state")
 	fmt.println("5. COMMA: Increase simulation speed")
 	fmt.println("6. PERIOD: Decrease simulation speed")
-	fmt.println("7. M: Toggle bug mode")
-	fmt.println("8. N: Toggle bug mode flipper")
-	fmt.println("9. O: Set Static_rune_render to Runes.O")
-	fmt.println("10. F: Set Static_rune_render to Runes.F")
-	fmt.println("11. R: Set Static_rune_render to Runes.R")
-	fmt.println("12. F1: Clear the grid")
+	fmt.println("7. O: Set Static_rune_render to Runes.O")
+	fmt.println("8. F: Set Static_rune_render to Runes.F")
+	fmt.println("9. R: Set Static_rune_render to Runes.R")
+	fmt.println("10. F1: Clear the grid")
 	fmt.println()
 	fmt.println("Mouse Commands:")
-	fmt.println("13. Left mouse button click: Toggle cell state")
-	fmt.println("14. Left mouse button drag: Draw cells")
+	fmt.println("11. Left mouse button click: Toggle cell state")
+	fmt.println("12. Left mouse button drag: Draw cells")
 }
 
 handle_input :: proc() {
@@ -323,16 +300,6 @@ handle_input :: proc() {
 		sim_speed -= sim_speed_step
 		if sim_speed < 1 {
 			sim_speed = 1
-		}
-	}
-	if rl.IsKeyPressed(.M) {
-		bug_mode = !bug_mode
-	}
-	if rl.IsKeyPressed(.N) {
-		if bug_mode_flipper {
-			bug_mode_flipper_count += 1
-		} else {
-			bug_mode_flipper = !bug_mode_flipper
 		}
 	}
 	if rl.IsKeyPressed(.O) {
