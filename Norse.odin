@@ -14,7 +14,6 @@ GRID_STATE :: [NUM_CELLS_X][NUM_CELLS_Y]Cell
 
 cell_life: bool
 is_set: bool
-cell_count: i32 = 0
 
 zoom_level: i32 = 20
 zoom_step: i32 = 2
@@ -27,12 +26,10 @@ sim_speed: i32 = 60
 sim_speed_step: i32 = 5
 grid_show: bool = false
 
-center_x := WINDOW_WIDTH / 2
-center_y := WINDOW_HEIGHT / 2
-
-grid_state: GRID_STATE
-next_grid_state: GRID_STATE
-grid_swap_tmp: GRID_STATE
+grid_buffer_a: GRID_STATE
+grid_buffer_b: GRID_STATE
+grid_state: ^GRID_STATE
+next_grid_state: ^GRID_STATE
 
 Cell :: struct {
 	alive: bool,
@@ -47,22 +44,16 @@ Runes :: enum {
 
 Static_rune_render := Runes.O
 
-CellState :: struct {
-	x:        i32,
-	y:        i32,
-	is_alive: bool,
-}
-
 offset_x_o: i32 = -2800
 offset_y_o: i32 = -2160
 
 offset_x: i32 = -2800
 offset_y: i32 = -2160
 
-range_start: i32 = 2
-range_end: i32 = 20
-
 main :: proc() {
+	grid_state = &grid_buffer_a
+	next_grid_state = &grid_buffer_b
+
 	rl.SetConfigFlags({.WINDOW_UNDECORATED, .VSYNC_HINT})
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, TITLE)
 	defer rl.CloseWindow()
@@ -70,10 +61,9 @@ main :: proc() {
 
 	counter: i32 = 0
 	print_commands()
+	run_draw_sync() // initialise zoom-derived offset and grid visibility
 
 	for !rl.WindowShouldClose() {
-		run_draw_sync()
-
 		// Handle Keyboard Input
 		if rl.IsKeyPressed(.X) {
 			zoom_level += zoom_step
@@ -131,12 +121,8 @@ main :: proc() {
 		}
 
 		// Handle Mouse Input
-		mouse_x := rl.GetMouseX()
-		mouse_y := rl.GetMouseY()
-		if rl.IsMouseButtonPressed(.LEFT) {
-			handle_mouse_input(mouse_x, mouse_y, false)
-		} else if rl.IsMouseButtonDown(.LEFT) {
-			handle_mouse_input(mouse_x, mouse_y, true)
+		if rl.IsMouseButtonDown(.LEFT) {
+			handle_mouse_input(rl.GetMouseX(), rl.GetMouseY())
 		}
 		if rl.IsMouseButtonReleased(.LEFT) {
 			is_set = false
@@ -146,32 +132,21 @@ main :: proc() {
 		rl.ClearBackground(rl.BLACK)
 
 		// Drawing gradient from black to grey
-		for x: i32 = 0; x < WINDOW_WIDTH; x += 1 {
-			fade := u8(f32(x) / f32(WINDOW_WIDTH) * 60)
-			rl.DrawLine(x, 0, x, WINDOW_HEIGHT, rl.Color{fade, fade, fade, 255})
-		}
+		rl.DrawRectangleGradientH(
+			0,
+			0,
+			WINDOW_WIDTH,
+			WINDOW_HEIGHT,
+			rl.Color{0, 0, 0, 255},
+			rl.Color{60, 60, 60, 255},
+		)
 
-		last_tick_rune := Static_rune_render
-		dont_render := false
-		if Static_rune_render != last_tick_rune {
-			//clear the grid
-			for x: i32 = 0; x < NUM_CELLS_X; x += 1 {
-				for y: i32 = 0; y < NUM_CELLS_Y; y += 1 {
-					grid_state[x][y].alive = false
-				}
-			}
-			dont_render = true
-		}
-
-		if Static_rune_render == Runes.O && !dont_render {
+		#partial switch Static_rune_render {
+		case .O:
 			get_rune_o()
-		}
-
-		if Static_rune_render == Runes.F && !dont_render {
+		case .F:
 			get_rune_f()
-		}
-
-		if Static_rune_render == Runes.R && !dont_render {
+		case .R:
 			get_rune_r()
 		}
 
@@ -219,11 +194,8 @@ main :: proc() {
 			run_next_generation()
 
 			if !bug_mode {
-				// swap the grids (via a package-level buffer to avoid a
-				// large copy on the stack)
-				grid_swap_tmp = grid_state
-				grid_state = next_grid_state
-				next_grid_state = grid_swap_tmp
+				// swap the buffers (O(1) pointer swap)
+				grid_state, next_grid_state = next_grid_state, grid_state
 			}
 		}
 
@@ -263,7 +235,7 @@ run_next_generation :: proc() {
             Any live cell with more than three live neighbours dies, as if by overpopulation.
             Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
             */
-			live_neighbours := count_live_neighbours(&grid_state, x, y)
+			live_neighbours := count_live_neighbours(grid_state, x, y)
 
 			if bug_mode {
 				grid_state[x][y].alive = update_cell_state(grid_state[x][y].alive, live_neighbours)
@@ -325,7 +297,7 @@ update_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
 	}
 }
 
-handle_mouse_input :: proc(mouse_x, mouse_y: i32, is_mouse_button_down: bool) {
+handle_mouse_input :: proc(mouse_x, mouse_y: i32) {
 	scaled_mouse_x := mouse_x / zoom_level
 	scaled_mouse_y := mouse_y / zoom_level
 
@@ -340,39 +312,13 @@ handle_mouse_input :: proc(mouse_x, mouse_y: i32, is_mouse_button_down: bool) {
 		return
 	}
 
-	// Check if the mouse loc is false
-	if !grid_state[scaled_mouse_x][scaled_mouse_y].alive {
-
-		if !is_set {
-			cell_life = true
-			is_set = true
-		}
-
-		if is_set {
-			grid_state[scaled_mouse_x][scaled_mouse_y].alive = cell_life
-		}
-		return
+	// On the first cell of a drag, decide whether we are drawing or erasing
+	// based on the cell under the cursor, then keep that for the whole drag.
+	if !is_set {
+		cell_life = !grid_state[scaled_mouse_x][scaled_mouse_y].alive
+		is_set = true
 	}
-
-	// Check if the mouse loc is true
-	if grid_state[scaled_mouse_x][scaled_mouse_y].alive {
-
-		if !is_set {
-			cell_life = false
-			is_set = true
-		}
-
-		if is_set {
-			grid_state[scaled_mouse_x][scaled_mouse_y].alive = cell_life
-
-		}
-
-		return
-	}
-
-	if is_set {
-		grid_state[scaled_mouse_x][scaled_mouse_y].alive = cell_life
-	}
+	grid_state[scaled_mouse_x][scaled_mouse_y].alive = cell_life
 }
 
 draw_cell_run :: proc(x, y, width: i32) {
@@ -390,29 +336,16 @@ run_draw_sync :: proc() {
 }
 
 calc_offset := proc() {
-
-	offset_x = i32(map_range_x_to_value(f32(zoom_level)))
-	offset_y = i32(map_range_y_to_value(f32(zoom_level)))
+	offset_x = i32(map_range_value(f32(zoom_level), -2800.0))
+	offset_y = i32(map_range_value(f32(zoom_level), -2160.0))
 }
 
-map_range_x_to_value :: proc(
+map_range_value :: proc(
 	input_value: f32,
+	value_end: f32,
 	range_start: f32 = 2.0,
 	range_end: f32 = 20.0,
 	value_start: f32 = 0.0,
-	value_end: f32 = -2800.0,
-) -> f32 {
-	proportion := (input_value - range_start) / (range_end - range_start)
-	mapped_value := proportion * (value_end - value_start) + value_start
-	return mapped_value
-}
-
-map_range_y_to_value :: proc(
-	input_value: f32,
-	range_start: f32 = 2.0,
-	range_end: f32 = 20.0,
-	value_start: f32 = 0.0,
-	value_end: f32 = -2160.0,
 ) -> f32 {
 	proportion := (input_value - range_start) / (range_end - range_start)
 	mapped_value := proportion * (value_end - value_start) + value_start
