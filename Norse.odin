@@ -17,6 +17,8 @@ is_set: bool
 
 zoom_level: i32 = 20
 zoom_step: i32 = 2
+ZOOM_MIN :: 2
+ZOOM_MAX :: 20
 
 bug_mode_flipper: bool = false
 bug_mode_flipper_count := 0
@@ -44,89 +46,31 @@ Runes :: enum {
 
 Static_rune_render := Runes.O
 
-offset_x_o: i32 = -2800
-offset_y_o: i32 = -2160
+// Camera: the world cell kept centred on screen, plus the derived
+// pixel offset used when drawing. update_camera() recomputes the offset
+// from the current zoom so the focus stays put while zooming.
+FOCUS_X :: 156
+FOCUS_Y :: 120
 
-offset_x: i32 = -2800
-offset_y: i32 = -2160
+offset_x: i32
+offset_y: i32
 
 main :: proc() {
 	grid_state = &grid_buffer_a
 	next_grid_state = &grid_buffer_b
 
-	rl.SetConfigFlags({.WINDOW_UNDECORATED, .VSYNC_HINT})
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, TITLE)
 	defer rl.CloseWindow()
+
 	rl.SetTargetFPS(TARGET_FPS)
 
 	counter: i32 = 0
 	print_commands()
-	run_draw_sync() // initialise zoom-derived offset and grid visibility
+	update_camera()
 
 	for !rl.WindowShouldClose() {
-		// Handle Keyboard Input
-		if rl.IsKeyPressed(.X) {
-			zoom_level += zoom_step
-			if zoom_level > 20 {
-				zoom_level = 20
-			}
-			run_draw_sync()
-		}
-		if rl.IsKeyPressed(.Z) {
-			zoom_level -= zoom_step
-			if zoom_level < 2 {
-				zoom_level = 2
-			}
-			run_draw_sync()
-		}
-		if rl.IsKeyPressed(.SPACE) {
-			sim_running = !sim_running
-		}
-		if rl.IsKeyPressed(.COMMA) {
-			sim_speed += sim_speed_step
-			if sim_speed > 100 {
-				sim_speed = 100
-			}
-		}
-		if rl.IsKeyPressed(.PERIOD) {
-			sim_speed -= sim_speed_step
-			if sim_speed < 1 {
-				sim_speed = 1
-			}
-		}
-		if rl.IsKeyPressed(.M) {
-			bug_mode = !bug_mode
-		}
-		if rl.IsKeyPressed(.N) {
-			if bug_mode_flipper {
-				bug_mode_flipper_count += 1
-			} else {
-				bug_mode_flipper = !bug_mode_flipper
-			}
-		}
-		if rl.IsKeyPressed(.O) {
-			Clear()
-			Static_rune_render = Runes.O
-		}
-		if rl.IsKeyPressed(.F) {
-			Clear()
-			Static_rune_render = Runes.F
-		}
-		if rl.IsKeyPressed(.R) {
-			Clear()
-			Static_rune_render = Runes.R
-		}
-		if rl.IsKeyPressed(.F1) {
-			Clear()
-		}
 
-		// Handle Mouse Input
-		if rl.IsMouseButtonDown(.LEFT) {
-			handle_mouse_input(rl.GetMouseX(), rl.GetMouseY())
-		}
-		if rl.IsMouseButtonReleased(.LEFT) {
-			is_set = false
-		}
+		handle_input()
 
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.BLACK)
@@ -176,13 +120,13 @@ main :: proc() {
 			}
 		}
 
-		// Drawing black grid lines spaced by the zoom level
+		// Grid lines on cell boundaries (aligned to the camera offset)
 		if (grid_show) {
-			for x: i32 = 0; x < WINDOW_WIDTH; x += zoom_level {
+			for x := offset_x %% zoom_level; x < WINDOW_WIDTH; x += zoom_level {
 				rl.DrawLine(x, 0, x, WINDOW_HEIGHT, rl.BLACK)
 			}
 
-			for y: i32 = 0; y < WINDOW_HEIGHT; y += zoom_level {
+			for y := offset_y %% zoom_level; y < WINDOW_HEIGHT; y += zoom_level {
 				rl.DrawLine(0, y, WINDOW_WIDTH, y, rl.BLACK)
 			}
 		}
@@ -219,10 +163,8 @@ Clear :: proc() { 	// Clear the grid and reset all related variables
 	bug_mode = false
 	bug_mode_flipper = false
 	bug_mode_flipper_count = 0
-	offset_x = offset_x_o
-	offset_y = offset_y_o
 
-	run_draw_sync() // Update the display
+	update_camera() // recentre the view
 }
 
 run_next_generation :: proc() {
@@ -263,6 +205,7 @@ run_next_generation :: proc() {
 */
 count_live_neighbours := proc(grid: ^GRID_STATE, x, y: i32) -> i32 {
 	live_neighbours: i32 = 0
+	// Handle Keyboard Input
 	for nx := x - 1; nx <= x + 1; nx += 1 {
 		for ny := y - 1; ny <= y + 1; ny += 1 {
 			// Wrap around horizontally
@@ -298,66 +241,39 @@ update_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
 }
 
 handle_mouse_input :: proc(mouse_x, mouse_y: i32) {
-	scaled_mouse_x := mouse_x / zoom_level
-	scaled_mouse_y := mouse_y / zoom_level
-
-	scaled_mouse_x -= offset_x / zoom_level
-	scaled_mouse_y -= offset_y / zoom_level
+	// Screen pixel -> world cell (inverse of draw_cell_run).
+	cell_x := (mouse_x - offset_x) / zoom_level
+	cell_y := (mouse_y - offset_y) / zoom_level
 
 	// Check if the mouse is outside the grid
-	if scaled_mouse_x < 0 ||
-	   scaled_mouse_x >= NUM_CELLS_X ||
-	   scaled_mouse_y < 0 ||
-	   scaled_mouse_y >= NUM_CELLS_Y {
+	if cell_x < 0 || cell_x >= NUM_CELLS_X || cell_y < 0 || cell_y >= NUM_CELLS_Y {
 		return
 	}
 
 	// On the first cell of a drag, decide whether we are drawing or erasing
 	// based on the cell under the cursor, then keep that for the whole drag.
 	if !is_set {
-		cell_life = !grid_state[scaled_mouse_x][scaled_mouse_y].alive
+		cell_life = !grid_state[cell_x][cell_y].alive
 		is_set = true
 	}
-	grid_state[scaled_mouse_x][scaled_mouse_y].alive = cell_life
+	grid_state[cell_x][cell_y].alive = cell_life
 }
 
 draw_cell_run :: proc(x, y, width: i32) {
-	rect_x := x * CELL_SIZE * zoom_level + offset_x
-	rect_y := y * CELL_SIZE * zoom_level + offset_y
-	rect_w := width * CELL_SIZE * zoom_level
-	rect_h := CELL_SIZE * zoom_level
+	rect_x := x * zoom_level + offset_x
+	rect_y := y * zoom_level + offset_y
+	rect_w := width * zoom_level
+	rect_h := zoom_level
 
 	rl.DrawRectangle(rect_x, rect_y, rect_w, rect_h, rl.Color{100, 0, 0, 255})
 }
 
-run_draw_sync :: proc() {
-	calc_offset()
-	turn_on_off_grid()
-}
-
-calc_offset := proc() {
-	offset_x = i32(map_range_value(f32(zoom_level), -2800.0))
-	offset_y = i32(map_range_value(f32(zoom_level), -2160.0))
-}
-
-map_range_value :: proc(
-	input_value: f32,
-	value_end: f32,
-	range_start: f32 = 2.0,
-	range_end: f32 = 20.0,
-	value_start: f32 = 0.0,
-) -> f32 {
-	proportion := (input_value - range_start) / (range_end - range_start)
-	mapped_value := proportion * (value_end - value_start) + value_start
-	return mapped_value
-}
-
-turn_on_off_grid :: proc() {
-	if (zoom_level == 2 || zoom_level == 4 || zoom_level == 20) {
-		grid_show = true
-	} else {
-		grid_show = false
-	}
+// Keep the focus cell centred on screen and show grid lines once cells
+// are big enough to see between.
+update_camera :: proc() {
+	offset_x = WINDOW_WIDTH / 2 - FOCUS_X * zoom_level
+	offset_y = WINDOW_HEIGHT / 2 - FOCUS_Y * zoom_level
+	grid_show = zoom_level >= 8
 }
 
 print_commands :: proc() {
@@ -380,4 +296,71 @@ print_commands :: proc() {
 	fmt.println("Mouse Commands:")
 	fmt.println("13. Left mouse button click: Toggle cell state")
 	fmt.println("14. Left mouse button drag: Draw cells")
+}
+
+handle_input :: proc() {
+
+	if rl.IsKeyPressed(.X) {
+		zoom_level += zoom_step
+		if zoom_level > ZOOM_MAX {
+			zoom_level = ZOOM_MAX
+		}
+		update_camera()
+	}
+	if rl.IsKeyPressed(.Z) {
+		zoom_level -= zoom_step
+		if zoom_level < ZOOM_MIN {
+			zoom_level = ZOOM_MIN
+		}
+		update_camera()
+	}
+	if rl.IsKeyPressed(.SPACE) {
+		sim_running = !sim_running
+	}
+	if rl.IsKeyPressed(.COMMA) {
+		sim_speed += sim_speed_step
+		if sim_speed > 100 {
+			sim_speed = 100
+		}
+	}
+	if rl.IsKeyPressed(.PERIOD) {
+		sim_speed -= sim_speed_step
+		if sim_speed < 1 {
+			sim_speed = 1
+		}
+	}
+	if rl.IsKeyPressed(.M) {
+		bug_mode = !bug_mode
+	}
+	if rl.IsKeyPressed(.N) {
+		if bug_mode_flipper {
+			bug_mode_flipper_count += 1
+		} else {
+			bug_mode_flipper = !bug_mode_flipper
+		}
+	}
+	if rl.IsKeyPressed(.O) {
+		Clear()
+		Static_rune_render = Runes.O
+	}
+	if rl.IsKeyPressed(.F) {
+		Clear()
+		Static_rune_render = Runes.F
+	}
+	if rl.IsKeyPressed(.R) {
+		Clear()
+		Static_rune_render = Runes.R
+	}
+	if rl.IsKeyPressed(.F1) {
+		Clear()
+	}
+
+	// Handle Mouse Input
+	if rl.IsMouseButtonDown(.LEFT) {
+		handle_mouse_input(rl.GetMouseX(), rl.GetMouseY())
+	}
+	if rl.IsMouseButtonReleased(.LEFT) {
+		is_set = false
+	}
+
 }
