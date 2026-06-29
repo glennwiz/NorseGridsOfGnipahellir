@@ -32,7 +32,7 @@ center_y := WINDOW_HEIGHT / 2
 
 grid_state: GRID_STATE
 next_grid_state: GRID_STATE
-grid_state_history: [dynamic]GRID_STATE
+grid_swap_tmp: GRID_STATE
 
 Cell :: struct {
 	alive: bool,
@@ -63,8 +63,6 @@ range_start: i32 = 2
 range_end: i32 = 20
 
 main :: proc() {
-	grid_state_history = make([dynamic]GRID_STATE, 5, 5)
-
 	rl.SetConfigFlags({.WINDOW_UNDECORATED, .VSYNC_HINT})
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, TITLE)
 	defer rl.CloseWindow()
@@ -177,8 +175,6 @@ main :: proc() {
 			get_rune_r()
 		}
 
-		append(&grid_state_history, grid_state)
-
 		// Draw the cell at locations by the grid
 		for y: i32 = 0; y < NUM_CELLS_Y; y += 1 {
 
@@ -193,15 +189,15 @@ main :: proc() {
 					batch_width += 1
 				} else {
 					if batch_start_x != -1 {
-						draw_batch(batch_start_x, y, batch_width, 1)
+						draw_cell_run(batch_start_x, y, batch_width)
 						batch_start_x = -1
 						batch_width = 0
 					}
 				}
 			}
 			if batch_start_x != -1 {
-				// Draw the last batch in the row if it ends with alive cells
-				draw_batch(batch_start_x, y, batch_width, 1)
+				// Draw the last run in the row if it ends with alive cells
+				draw_cell_run(batch_start_x, y, batch_width)
 			}
 		}
 
@@ -223,13 +219,12 @@ main :: proc() {
 			run_next_generation()
 
 			if !bug_mode {
-				// swap the grids
-				temp_grid := grid_state
+				// swap the grids (via a package-level buffer to avoid a
+				// large copy on the stack)
+				grid_swap_tmp = grid_state
 				grid_state = next_grid_state
-				next_grid_state = temp_grid
+				next_grid_state = grid_swap_tmp
 			}
-
-			append(&grid_state_history, grid_state)
 		}
 
 		counter += 1
@@ -255,9 +250,6 @@ Clear :: proc() { 	// Clear the grid and reset all related variables
 	offset_x = offset_x_o
 	offset_y = offset_y_o
 
-	// Clear the grid state history
-	clear(&grid_state_history)
-
 	run_draw_sync() // Update the display
 }
 
@@ -271,7 +263,7 @@ run_next_generation :: proc() {
             Any live cell with more than three live neighbours dies, as if by overpopulation.
             Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
             */
-			live_neighbours := count_live_neighbours(grid_state, x, y)
+			live_neighbours := count_live_neighbours(&grid_state, x, y)
 
 			if bug_mode {
 				grid_state[x][y].alive = update_cell_state(grid_state[x][y].alive, live_neighbours)
@@ -291,24 +283,13 @@ run_next_generation :: proc() {
 	}
 }
 
-count_alive_cells := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]Cell) -> i32 {
-	alive_cells: i32 = 0
-	for x: i32 = 0; x < NUM_CELLS_X; x += 1 {
-		for y: i32 = 0; y < NUM_CELLS_Y; y += 1 {
-			if grid_state[x][y].alive {
-				alive_cells += 1
-			}
-		}
-	}
-	return alive_cells
-}
-
 /*
-    function count_live_neighbours calculates the number of live neighbors around a cell in a toroidal grid represented by grid_state.
+    function count_live_neighbours calculates the number of live neighbors around a cell in a toroidal grid represented by grid.
     It uses nested loops to examine a 3x3 cell neighborhood centered at (x, y) while handling boundary wrapping.
     The function returns the count of live neighbors for the specified cell.
+    The grid is passed by pointer to avoid copying the whole (large) grid on every call.
 */
-count_live_neighbours := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]Cell, x, y: i32) -> i32 {
+count_live_neighbours := proc(grid: ^GRID_STATE, x, y: i32) -> i32 {
 	live_neighbours: i32 = 0
 	for nx := x - 1; nx <= x + 1; nx += 1 {
 		for ny := y - 1; ny <= y + 1; ny += 1 {
@@ -317,7 +298,7 @@ count_live_neighbours := proc(grid_state: [NUM_CELLS_X][NUM_CELLS_Y]Cell, x, y: 
 			// Wrap around vertically
 			wrapped_ny := (ny + NUM_CELLS_Y) % NUM_CELLS_Y
 
-			if !(wrapped_nx == x && wrapped_ny == y) && grid_state[wrapped_nx][wrapped_ny].alive {
+			if !(wrapped_nx == x && wrapped_ny == y) && grid[wrapped_nx][wrapped_ny].alive {
 				live_neighbours += 1
 			}
 		}
@@ -394,11 +375,11 @@ handle_mouse_input :: proc(mouse_x, mouse_y: i32, is_mouse_button_down: bool) {
 	}
 }
 
-draw_batch :: proc(x, y, width, height: i32) {
+draw_cell_run :: proc(x, y, width: i32) {
 	rect_x := x * CELL_SIZE * zoom_level + offset_x
 	rect_y := y * CELL_SIZE * zoom_level + offset_y
 	rect_w := width * CELL_SIZE * zoom_level
-	rect_h := height * CELL_SIZE * zoom_level
+	rect_h := CELL_SIZE * zoom_level
 
 	rl.DrawRectangle(rect_x, rect_y, rect_w, rect_h, rl.Color{100, 0, 0, 255})
 }
