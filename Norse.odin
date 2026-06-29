@@ -42,11 +42,8 @@ Runes :: enum {
 
 Static_rune_render := Runes.O
 
-// Camera: the world cell kept centred on screen, plus the derived
-// pixel offset used when drawing. update_camera() recomputes the offset
-// from the current zoom so the focus stays put while zooming.
-FOCUS_X :: 156
-FOCUS_Y :: 120
+FOCUS_X :: RUNE_O_X
+FOCUS_Y :: RUNE_O_Y
 
 offset_x: i32
 offset_y: i32
