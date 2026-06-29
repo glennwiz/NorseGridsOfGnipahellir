@@ -26,7 +26,6 @@ bug_mode: bool = false
 sim_running: bool
 sim_speed: i32 = 60
 sim_speed_step: i32 = 5
-grid_show: bool = false
 
 grid_buffer_a: GRID_STATE
 grid_buffer_b: GRID_STATE
@@ -121,15 +120,14 @@ main :: proc() {
 		}
 
 		// Grid lines on cell boundaries (aligned to the camera offset)
-		if (grid_show) {
-			for x := offset_x %% zoom_level; x < WINDOW_WIDTH; x += zoom_level {
-				rl.DrawLine(x, 0, x, WINDOW_HEIGHT, rl.BLACK)
-			}
-
-			for y := offset_y %% zoom_level; y < WINDOW_HEIGHT; y += zoom_level {
-				rl.DrawLine(0, y, WINDOW_WIDTH, y, rl.BLACK)
-			}
+		for x := offset_x %% zoom_level; x < WINDOW_WIDTH; x += zoom_level {
+			rl.DrawLine(x, 0, x, WINDOW_HEIGHT, rl.BLACK)
 		}
+
+		for y := offset_y %% zoom_level; y < WINDOW_HEIGHT; y += zoom_level {
+			rl.DrawLine(0, y, WINDOW_WIDTH, y, rl.BLACK)
+		}
+
 
 		rl.EndDrawing()
 
@@ -268,12 +266,10 @@ draw_cell_run :: proc(x, y, width: i32) {
 	rl.DrawRectangle(rect_x, rect_y, rect_w, rect_h, rl.Color{100, 0, 0, 255})
 }
 
-// Keep the focus cell centred on screen and show grid lines once cells
-// are big enough to see between.
+// Keep the focus cell centred on screen and show grid lines
 update_camera :: proc() {
 	offset_x = WINDOW_WIDTH / 2 - FOCUS_X * zoom_level
 	offset_y = WINDOW_HEIGHT / 2 - FOCUS_Y * zoom_level
-	grid_show = zoom_level >= 8
 }
 
 print_commands :: proc() {
