@@ -15,10 +15,11 @@ GRID_STATE :: [NUM_CELLS_X][NUM_CELLS_Y]Cell
 cell_life: bool
 is_set: bool
 
-zoom_level: i32 = 20
-zoom_step: i32 = 2
-ZOOM_MIN :: 2
-ZOOM_MAX :: 20
+zoom_level: i32 = 20 // pixels per cell
+ZOOM_MIN :: 1 // the whole board fits the window
+ZOOM_MAX :: 60
+GRID_LINES_MIN_ZOOM :: 6 // below this the lines would hide the cells
+PAN_SPEED :: 10 // pixels per frame for the arrow keys
 
 sim_running: bool
 sim_speed: i32 = 2 // frames per generation (2 = 30 generations/sec)
@@ -114,12 +115,14 @@ main :: proc() {
 		}
 
 		// Grid lines on cell boundaries (aligned to the camera offset)
-		for x := offset_x %% zoom_level; x < WINDOW_WIDTH; x += zoom_level {
-			rl.DrawLine(x, 0, x, WINDOW_HEIGHT, rl.BLACK)
-		}
+		if zoom_level >= GRID_LINES_MIN_ZOOM {
+			for x := offset_x %% zoom_level; x < WINDOW_WIDTH; x += zoom_level {
+				rl.DrawLine(x, 0, x, WINDOW_HEIGHT, rl.BLACK)
+			}
 
-		for y := offset_y %% zoom_level; y < WINDOW_HEIGHT; y += zoom_level {
-			rl.DrawLine(0, y, WINDOW_WIDTH, y, rl.BLACK)
+			for y := offset_y %% zoom_level; y < WINDOW_HEIGHT; y += zoom_level {
+				rl.DrawLine(0, y, WINDOW_WIDTH, y, rl.BLACK)
+			}
 		}
 
 
@@ -215,12 +218,16 @@ update_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
 }
 
 handle_mouse_input :: proc(mouse_x, mouse_y: i32) {
+	// Check if the mouse is outside the grid (before dividing, since
+	// integer division rounds -0.5 cells to 0)
+	if mouse_x < offset_x || mouse_y < offset_y {
+		return
+	}
+
 	// Screen pixel -> world cell (inverse of draw_cell_run).
 	cell_x := (mouse_x - offset_x) / zoom_level
 	cell_y := (mouse_y - offset_y) / zoom_level
-
-	// Check if the mouse is outside the grid
-	if cell_x < 0 || cell_x >= NUM_CELLS_X || cell_y < 0 || cell_y >= NUM_CELLS_Y {
+	if cell_x >= NUM_CELLS_X || cell_y >= NUM_CELLS_Y {
 		return
 	}
 
@@ -242,10 +249,39 @@ draw_cell_run :: proc(x, y, width: i32) {
 	rl.DrawRectangle(rect_x, rect_y, rect_w, rect_h, rl.Color{100, 0, 0, 255})
 }
 
-// Keep the focus cell centred on screen and show grid lines
+// Centre the view on the focus cell
 update_camera :: proc() {
 	offset_x = WINDOW_WIDTH / 2 - FOCUS_X * zoom_level
 	offset_y = WINDOW_HEIGHT / 2 - FOCUS_Y * zoom_level
+}
+
+// Zoom in (steps > 0) or out, keeping the world point under the
+// screen pixel (anchor_x, anchor_y) in place.
+zoom_at :: proc(steps: i32, anchor_x, anchor_y: i32) {
+	// Step size grows with the zoom so the wheel feels even at every level
+	new_zoom := clamp(zoom_level + steps * max(1, zoom_level / 5), ZOOM_MIN, ZOOM_MAX)
+	if new_zoom == zoom_level {
+		return
+	}
+
+	world_x := f32(anchor_x - offset_x) / f32(zoom_level)
+	world_y := f32(anchor_y - offset_y) / f32(zoom_level)
+	zoom_level = new_zoom
+	offset_x = anchor_x - i32(world_x * f32(zoom_level))
+	offset_y = anchor_y - i32(world_y * f32(zoom_level))
+	clamp_camera()
+}
+
+pan :: proc(dx, dy: i32) {
+	offset_x += dx
+	offset_y += dy
+	clamp_camera()
+}
+
+// Keep the screen centre over the board so it can't be panned out of sight
+clamp_camera :: proc() {
+	offset_x = clamp(offset_x, WINDOW_WIDTH / 2 - NUM_CELLS_X * zoom_level, WINDOW_WIDTH / 2)
+	offset_y = clamp(offset_y, WINDOW_HEIGHT / 2 - NUM_CELLS_Y * zoom_level, WINDOW_HEIGHT / 2)
 }
 
 print_commands :: proc() {
@@ -253,8 +289,9 @@ print_commands :: proc() {
 	fmt.println("------------------")
 	fmt.println("Keyboard Commands:")
 	fmt.println("1. ESCAPE: Exit the game loop")
-	fmt.println("2. X: Increase zoom level")
-	fmt.println("3. Z: Decrease zoom level")
+	fmt.println("2. X / Z: Zoom in / out (around the screen centre)")
+	fmt.println("3. Arrow keys: Pan the camera")
+	fmt.println("   C: Re-centre the camera")
 	fmt.println("4. SPACE: Toggle simulation running state")
 	fmt.println("5. COMMA: Increase simulation speed")
 	fmt.println("6. PERIOD: Decrease simulation speed")
@@ -271,24 +308,34 @@ print_commands :: proc() {
 	fmt.println("Mouse Commands:")
 	fmt.println("Left mouse button click: Toggle cell state")
 	fmt.println("Left mouse button drag: Draw cells")
+	fmt.println("Mouse wheel: Zoom in / out around the cursor")
+	fmt.println("Right mouse button drag: Pan the camera")
 }
 
 handle_input :: proc() {
 
+	// Camera
 	if rl.IsKeyPressed(.X) {
-		zoom_level += zoom_step
-		if zoom_level > ZOOM_MAX {
-			zoom_level = ZOOM_MAX
-		}
-		update_camera()
+		zoom_at(1, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2)
 	}
 	if rl.IsKeyPressed(.Z) {
-		zoom_level -= zoom_step
-		if zoom_level < ZOOM_MIN {
-			zoom_level = ZOOM_MIN
-		}
+		zoom_at(-1, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2)
+	}
+	if wheel := rl.GetMouseWheelMove(); wheel != 0 {
+		zoom_at(wheel > 0 ? 1 : -1, rl.GetMouseX(), rl.GetMouseY())
+	}
+	if rl.IsMouseButtonDown(.RIGHT) {
+		delta := rl.GetMouseDelta()
+		pan(i32(delta.x), i32(delta.y))
+	}
+	if rl.IsKeyDown(.LEFT) {pan(PAN_SPEED, 0)}
+	if rl.IsKeyDown(.RIGHT) {pan(-PAN_SPEED, 0)}
+	if rl.IsKeyDown(.UP) {pan(0, PAN_SPEED)}
+	if rl.IsKeyDown(.DOWN) {pan(0, -PAN_SPEED)}
+	if rl.IsKeyPressed(.C) {
 		update_camera()
 	}
+
 	if rl.IsKeyPressed(.SPACE) {
 		sim_running = !sim_running
 	}
