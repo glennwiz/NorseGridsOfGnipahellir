@@ -75,12 +75,14 @@ place_rle :: proc(rle: string, dx: i32 = 0, dy: i32 = 0) {
 	cells, w, h := parse_rle(rle)
 	defer delete(cells)
 
-	ox := FOCUS_X + dx - w / 2
-	oy := FOCUS_Y + dy - h / 2
+	ox := RUNE_CENTER_X + dx - w / 2
+	oy := RUNE_CENTER_Y + dy - h / 2
 	for c in cells {
 		x := (ox + c.x) %% NUM_CELLS_X
 		y := (oy + c.y) %% NUM_CELLS_Y
-		grid_state[x][y] = Cell{alive = true}
+		grid_state[x][y] = Cell {
+			alive = true,
+		}
 	}
 }
 

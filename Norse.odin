@@ -12,14 +12,15 @@ NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 GRID_STATE :: [NUM_CELLS_X][NUM_CELLS_Y]Cell
 
-cell_life: bool
-is_set: bool
-
-zoom_level: i32 = 20 // pixels per cell
 ZOOM_MIN :: 1 // the whole board fits the window
 ZOOM_MAX :: 60
 GRID_LINES_MIN_ZOOM :: 6 // below this the lines would hide the cells
 PAN_SPEED :: 10 // pixels per frame for the arrow keys
+
+
+cell_life: bool
+is_set: bool
+zoom_level: i32 = 20 // pixels per cell
 
 sim_running: bool
 sim_speed: i32 = 2 // frames per generation (2 = 30 generations/sec)
@@ -32,7 +33,7 @@ next_grid_state: ^GRID_STATE
 
 Cell :: struct {
 	alive: bool,
-	age:   u8, // generations survived, capped at AGE_MAX
+	age:   u8,
 }
 
 Runes :: enum {
@@ -44,8 +45,6 @@ Runes :: enum {
 
 Static_rune_render := Runes.O
 
-FOCUS_X :: RUNE_O_X
-FOCUS_Y :: RUNE_O_Y
 
 offset_x: i32
 offset_y: i32
@@ -71,61 +70,9 @@ main :: proc() {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.BLACK)
 
-		// Drawing gradient from black to grey
-		rl.DrawRectangleGradientH(
-			0,
-			0,
-			WINDOW_WIDTH,
-			WINDOW_HEIGHT,
-			rl.Color{0, 0, 0, 255},
-			rl.Color{60, 60, 60, 255},
-		)
-
-		#partial switch Static_rune_render {
-		case .O:
-			get_rune_o()
-		case .F:
-			get_rune_f()
-		case .R:
-			get_rune_r()
-		}
-
-		// Draw the cells, batching each row into runs of the same colour
-		for y: i32 = 0; y < NUM_CELLS_Y; y += 1 {
-
-			batch_start_x: i32 = -1
-			batch_color: rl.Color
-
-			// x == NUM_CELLS_X is one past the row, so the last run gets flushed
-			for x: i32 = 0; x <= NUM_CELLS_X; x += 1 {
-				alive := x < NUM_CELLS_X && grid_state[x][y].alive
-				color: rl.Color
-				if alive {
-					color = cell_color(grid_state[x][y])
-				}
-
-				if batch_start_x != -1 && (!alive || color != batch_color) {
-					draw_cell_run(batch_start_x, y, x - batch_start_x, batch_color)
-					batch_start_x = -1
-				}
-				if alive && batch_start_x == -1 {
-					batch_start_x = x
-					batch_color = color
-				}
-			}
-		}
-
-		// Grid lines on cell boundaries (aligned to the camera offset)
-		if zoom_level >= GRID_LINES_MIN_ZOOM {
-			for x := offset_x %% zoom_level; x < WINDOW_WIDTH; x += zoom_level {
-				rl.DrawLine(x, 0, x, WINDOW_HEIGHT, rl.BLACK)
-			}
-
-			for y := offset_y %% zoom_level; y < WINDOW_HEIGHT; y += zoom_level {
-				rl.DrawLine(0, y, WINDOW_WIDTH, y, rl.BLACK)
-			}
-		}
-
+		draw_background()
+		draw_cells()
+		draw_grid()
 
 		rl.EndDrawing()
 
@@ -142,19 +89,6 @@ main :: proc() {
 	}
 }
 
-Clear :: proc() { 	// Clear the grid and reset all related variables
-	Static_rune_render = Runes.Empty
-	for x: i32 = 0; x < NUM_CELLS_X; x += 1 {
-		for y: i32 = 0; y < NUM_CELLS_Y; y += 1 {
-			grid_state[x][y] = Cell{}
-			next_grid_state[x][y] = Cell{}
-		}
-	}
-
-	sim_running = false
-
-	update_camera() // recentre the view
-}
 
 run_next_generation :: proc() {
 	//simulate the next generation
@@ -243,7 +177,9 @@ handle_mouse_input :: proc(mouse_x, mouse_y: i32) {
 		cell_life = !grid_state[cell_x][cell_y].alive
 		is_set = true
 	}
-	grid_state[cell_x][cell_y] = Cell{alive = cell_life}
+	grid_state[cell_x][cell_y] = Cell {
+		alive = cell_life,
+	}
 }
 
 draw_cell_run :: proc(x, y, width: i32, color: rl.Color) {
@@ -257,8 +193,8 @@ draw_cell_run :: proc(x, y, width: i32, color: rl.Color) {
 
 // Centre the view on the focus cell
 update_camera :: proc() {
-	offset_x = WINDOW_WIDTH / 2 - FOCUS_X * zoom_level
-	offset_y = WINDOW_HEIGHT / 2 - FOCUS_Y * zoom_level
+	offset_x = WINDOW_WIDTH / 2 - RUNE_CENTER_X * zoom_level
+	offset_y = WINDOW_HEIGHT / 2 - RUNE_CENTER_Y * zoom_level
 }
 
 // Zoom in (steps > 0) or out, keeping the world point under the
@@ -359,25 +295,25 @@ handle_input :: proc() {
 		}
 	}
 	if rl.IsKeyPressed(.O) {
-		Clear()
+		clear()
 		Static_rune_render = Runes.O
 	}
 	if rl.IsKeyPressed(.F) {
-		Clear()
+		clear()
 		Static_rune_render = Runes.F
 	}
 	if rl.IsKeyPressed(.R) {
-		Clear()
+		clear()
 		Static_rune_render = Runes.R
 	}
 	for pk in PATTERN_KEYS {
 		if rl.IsKeyPressed(pk.key) {
-			Clear()
+			clear()
 			place_pattern(pk.key)
 		}
 	}
 	if rl.IsKeyPressed(.F1) {
-		Clear()
+		clear()
 	}
 	if rl.IsKeyPressed(.G) {
 		show_age_colors = !show_age_colors
@@ -391,4 +327,77 @@ handle_input :: proc() {
 		is_set = false
 	}
 
+}
+
+draw_cells :: proc() {
+	#partial switch Static_rune_render {
+	case .O:
+		get_rune_o()
+	case .F:
+		get_rune_f()
+	case .R:
+		get_rune_r()
+	}
+
+	// Draw the cells, batching each row into runs of the same colour
+	for y: i32 = 0; y < NUM_CELLS_Y; y += 1 {
+
+		batch_start_x: i32 = -1
+		batch_color: rl.Color
+
+		// x == NUM_CELLS_X is one past the row, so the last run gets flushed
+		for x: i32 = 0; x <= NUM_CELLS_X; x += 1 {
+			alive := x < NUM_CELLS_X && grid_state[x][y].alive
+			color: rl.Color
+			if alive {
+				color = cell_color(grid_state[x][y])
+			}
+
+			if batch_start_x != -1 && (!alive || color != batch_color) {
+				draw_cell_run(batch_start_x, y, x - batch_start_x, batch_color)
+				batch_start_x = -1
+			}
+			if alive && batch_start_x == -1 {
+				batch_start_x = x
+				batch_color = color
+			}
+		}
+	}
+}
+
+draw_grid :: proc() {
+	if zoom_level < GRID_LINES_MIN_ZOOM {
+		return // the lines would hide the cells
+	}
+	for x := offset_x %% zoom_level; x < WINDOW_WIDTH; x += zoom_level {
+		rl.DrawLine(x, 0, x, WINDOW_HEIGHT, rl.BLACK)
+	}
+	for y := offset_y %% zoom_level; y < WINDOW_HEIGHT; y += zoom_level {
+		rl.DrawLine(0, y, WINDOW_WIDTH, y, rl.BLACK)
+	}
+}
+
+draw_background :: proc() {
+	rl.DrawRectangleGradientH(
+		0,
+		0,
+		WINDOW_WIDTH,
+		WINDOW_HEIGHT,
+		rl.Color{0, 0, 0, 255},
+		rl.Color{60, 60, 60, 255},
+	)
+}
+
+clear :: proc() { 	// Clear the grid and reset all related variables
+	Static_rune_render = Runes.Empty
+	for x: i32 = 0; x < NUM_CELLS_X; x += 1 {
+		for y: i32 = 0; y < NUM_CELLS_Y; y += 1 {
+			grid_state[x][y] = Cell{}
+			next_grid_state[x][y] = Cell{}
+		}
+	}
+
+	sim_running = false
+
+	update_camera() // recentre the view
 }
