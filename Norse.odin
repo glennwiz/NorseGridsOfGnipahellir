@@ -261,11 +261,12 @@ print_commands :: proc() {
 	fmt.println("7. O: Set Static_rune_render to Runes.O")
 	fmt.println("8. F: Set Static_rune_render to Runes.F")
 	fmt.println("9. R: Set Static_rune_render to Runes.R")
-	fmt.println("10. F1: Clear the grid")
+	fmt.println("10. A: Place the block/ship/glider pattern")
+	fmt.println("11. F1: Clear the grid")
 	fmt.println()
 	fmt.println("Mouse Commands:")
-	fmt.println("11. Left mouse button click: Toggle cell state")
-	fmt.println("12. Left mouse button drag: Draw cells")
+	fmt.println("12. Left mouse button click: Toggle cell state")
+	fmt.println("13. Left mouse button drag: Draw cells")
 }
 
 handle_input :: proc() {
@@ -310,6 +311,10 @@ handle_input :: proc() {
 	if rl.IsKeyPressed(.R) {
 		Clear()
 		Static_rune_render = Runes.R
+	}
+	if rl.IsKeyPressed(.A) {
+		Clear()
+		place_pattern_a()
 	}
 	if rl.IsKeyPressed(.F1) {
 		Clear()

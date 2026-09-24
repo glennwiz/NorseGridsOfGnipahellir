@@ -103,3 +103,33 @@ get_rune_o :: proc() {
 	grid_state[ox - 3][oy + 4] = Cell{true}; grid_state[ox + 3][oy + 4] = Cell{true}
 
 }
+
+// Blocks, ships and gliders from the reference screenshot, as {x, y} cell
+// offsets from the pattern's top-left corner.
+PATTERN_A :: [?][2]i32 {
+	// block
+	{0, 3}, {1, 3}, {0, 4}, {1, 4},
+	// ship
+	{9, 3}, {10, 3}, {8, 4}, {10, 4}, {8, 5}, {9, 5},
+	// glider
+	{16, 5}, {17, 5}, {16, 6}, {18, 6}, {16, 7},
+	// ship
+	{23, 1}, {24, 1}, {22, 2}, {24, 2}, {22, 3}, {23, 3},
+	// block
+	{34, 1}, {35, 1}, {34, 2}, {35, 2},
+	// glider
+	{35, 8}, {36, 8}, {35, 9}, {37, 9}, {35, 10},
+	// glider
+	{24, 13}, {25, 13}, {26, 13}, {24, 14}, {25, 15},
+}
+PATTERN_A_W :: 38
+PATTERN_A_H :: 16
+
+// Stamped once (not every frame like the runes) so the pattern evolves.
+place_pattern_a :: proc() {
+	ox :: FOCUS_X - PATTERN_A_W / 2
+	oy :: FOCUS_Y - PATTERN_A_H / 2
+	for p in PATTERN_A {
+		grid_state[ox + p.x][oy + p.y] = Cell{true}
+	}
+}
