@@ -21,7 +21,7 @@ ZOOM_MIN :: 2
 ZOOM_MAX :: 20
 
 sim_running: bool
-sim_speed: i32 = 60
+sim_speed: i32 = 2 // frames per generation (2 = 30 generations/sec)
 sim_speed_step: i32 = 5
 
 grid_buffer_a: GRID_STATE
@@ -261,12 +261,16 @@ print_commands :: proc() {
 	fmt.println("7. O: Set Static_rune_render to Runes.O")
 	fmt.println("8. F: Set Static_rune_render to Runes.F")
 	fmt.println("9. R: Set Static_rune_render to Runes.R")
-	fmt.println("10. A: Place the block/ship/glider pattern")
-	fmt.println("11. F1: Clear the grid")
+	fmt.println("10. F1: Clear the grid")
+	fmt.println()
+	fmt.println("Pattern Keys:")
+	for pk in PATTERN_KEYS {
+		fmt.printfln("%v: %s", pk.key, pk.name)
+	}
 	fmt.println()
 	fmt.println("Mouse Commands:")
-	fmt.println("12. Left mouse button click: Toggle cell state")
-	fmt.println("13. Left mouse button drag: Draw cells")
+	fmt.println("Left mouse button click: Toggle cell state")
+	fmt.println("Left mouse button drag: Draw cells")
 }
 
 handle_input :: proc() {
@@ -312,9 +316,11 @@ handle_input :: proc() {
 		Clear()
 		Static_rune_render = Runes.R
 	}
-	if rl.IsKeyPressed(.A) {
-		Clear()
-		place_pattern_a()
+	for pk in PATTERN_KEYS {
+		if rl.IsKeyPressed(pk.key) {
+			Clear()
+			place_pattern(pk.key)
+		}
 	}
 	if rl.IsKeyPressed(.F1) {
 		Clear()
