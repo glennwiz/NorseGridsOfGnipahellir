@@ -78,6 +78,7 @@ main :: proc() {
 
 		if sim_running && counter % sim_speed == 0 {
 			run_next_generation()
+
 			// swap the buffers (O(1) pointer swap)
 			grid_state, next_grid_state = next_grid_state, grid_state
 		}
@@ -91,14 +92,11 @@ main :: proc() {
 
 
 run_next_generation :: proc() {
-	//simulate the next generation
 	for x: i32 = 0; x < NUM_CELLS_X; x += 1 {
 		for y: i32 = 0; y < NUM_CELLS_Y; y += 1 {
 			/*
-            Any live cell with fewer than two live neighbours dies, as if by underpopulation.
-            Any live cell with two or three live neighbours lives on to the next generation.
-            Any live cell with more than three live neighbours dies, as if by overpopulation.
-            Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+            Any live cell with two or three live neighbours survives too the next generation.
+            Any dead cell with exactly three live neighbours becomes a live cell.
             */
 			live_neighbours := count_live_neighbours(grid_state, x, y)
 			cell := grid_state[x][y]
@@ -115,22 +113,17 @@ run_next_generation :: proc() {
 }
 
 /*
-    function count_live_neighbours calculates the number of live neighbors around a cell in a toroidal grid represented by grid.
-    It uses nested loops to examine a 3x3 cell neighborhood centered at (x, y) while handling boundary wrapping.
+    function count_live_neighbours calculates the number of live neighbors around a cell in grid.
+    It uses nested loops to examine a 3x3 cell neighborhood centered at (x, y).
+    Cells beyond the edge of the grid count as dead.
     The function returns the count of live neighbors for the specified cell.
     The grid is passed by pointer to avoid copying the whole (large) grid on every call.
 */
 count_live_neighbours := proc(grid: ^GRID_STATE, x, y: i32) -> i32 {
 	live_neighbours: i32 = 0
-	// Handle Keyboard Input
-	for nx := x - 1; nx <= x + 1; nx += 1 {
-		for ny := y - 1; ny <= y + 1; ny += 1 {
-			// Wrap around horizontally
-			wrapped_nx := (nx + NUM_CELLS_X) % NUM_CELLS_X
-			// Wrap around vertically
-			wrapped_ny := (ny + NUM_CELLS_Y) % NUM_CELLS_Y
-
-			if !(wrapped_nx == x && wrapped_ny == y) && grid[wrapped_nx][wrapped_ny].alive {
+	for nx := max(x - 1, 0); nx <= min(x + 1, NUM_CELLS_X - 1); nx += 1 {
+		for ny := max(y - 1, 0); ny <= min(y + 1, NUM_CELLS_Y - 1); ny += 1 {
+			if !(nx == x && ny == y) && grid[nx][ny].alive {
 				live_neighbours += 1
 			}
 		}

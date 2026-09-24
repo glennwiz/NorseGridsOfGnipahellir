@@ -78,8 +78,11 @@ place_rle :: proc(rle: string, dx: i32 = 0, dy: i32 = 0) {
 	ox := RUNE_CENTER_X + dx - w / 2
 	oy := RUNE_CENTER_Y + dy - h / 2
 	for c in cells {
-		x := (ox + c.x) %% NUM_CELLS_X
-		y := (oy + c.y) %% NUM_CELLS_Y
+		x := ox + c.x
+		y := oy + c.y
+		if x < 0 || x >= NUM_CELLS_X || y < 0 || y >= NUM_CELLS_Y {
+			continue // off the edge of the grid
+		}
 		grid_state[x][y] = Cell {
 			alive = true,
 		}
