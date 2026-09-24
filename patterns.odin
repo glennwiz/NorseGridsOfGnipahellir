@@ -80,7 +80,7 @@ place_rle :: proc(rle: string, dx: i32 = 0, dy: i32 = 0) {
 	for c in cells {
 		x := (ox + c.x) %% NUM_CELLS_X
 		y := (oy + c.y) %% NUM_CELLS_Y
-		grid_state[x][y] = Cell{true}
+		grid_state[x][y] = Cell{alive = true}
 	}
 }
 

@@ -32,6 +32,7 @@ next_grid_state: ^GRID_STATE
 
 Cell :: struct {
 	alive: bool,
+	age:   u8, // generations survived, capped at AGE_MAX
 }
 
 Runes :: enum {
@@ -59,6 +60,7 @@ main :: proc() {
 	rl.SetTargetFPS(TARGET_FPS)
 
 	counter: i32 = 0
+	build_age_palette()
 	print_commands()
 	update_camera()
 
@@ -88,29 +90,28 @@ main :: proc() {
 			get_rune_r()
 		}
 
-		// Draw the cell at locations by the grid
+		// Draw the cells, batching each row into runs of the same colour
 		for y: i32 = 0; y < NUM_CELLS_Y; y += 1 {
 
 			batch_start_x: i32 = -1
-			batch_width: i32 = 0
+			batch_color: rl.Color
 
-			for x: i32 = 0; x < NUM_CELLS_X; x += 1 {
-				if grid_state[x][y].alive {
-					if batch_start_x == -1 {
-						batch_start_x = x
-					}
-					batch_width += 1
-				} else {
-					if batch_start_x != -1 {
-						draw_cell_run(batch_start_x, y, batch_width)
-						batch_start_x = -1
-						batch_width = 0
-					}
+			// x == NUM_CELLS_X is one past the row, so the last run gets flushed
+			for x: i32 = 0; x <= NUM_CELLS_X; x += 1 {
+				alive := x < NUM_CELLS_X && grid_state[x][y].alive
+				color: rl.Color
+				if alive {
+					color = cell_color(grid_state[x][y])
 				}
-			}
-			if batch_start_x != -1 {
-				// Draw the last run in the row if it ends with alive cells
-				draw_cell_run(batch_start_x, y, batch_width)
+
+				if batch_start_x != -1 && (!alive || color != batch_color) {
+					draw_cell_run(batch_start_x, y, x - batch_start_x, batch_color)
+					batch_start_x = -1
+				}
+				if alive && batch_start_x == -1 {
+					batch_start_x = x
+					batch_color = color
+				}
 			}
 		}
 
@@ -145,8 +146,8 @@ Clear :: proc() { 	// Clear the grid and reset all related variables
 	Static_rune_render = Runes.Empty
 	for x: i32 = 0; x < NUM_CELLS_X; x += 1 {
 		for y: i32 = 0; y < NUM_CELLS_Y; y += 1 {
-			grid_state[x][y].alive = false
-			next_grid_state[x][y].alive = false
+			grid_state[x][y] = Cell{}
+			next_grid_state[x][y] = Cell{}
 		}
 	}
 
@@ -166,10 +167,15 @@ run_next_generation :: proc() {
             Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
             */
 			live_neighbours := count_live_neighbours(grid_state, x, y)
-			next_grid_state[x][y].alive = update_cell_state(
-				grid_state[x][y].alive,
-				live_neighbours,
-			)
+			cell := grid_state[x][y]
+			alive := update_cell_state(cell.alive, live_neighbours)
+
+			// Survivors get one generation older, newborns start at 0
+			age: u8 = 0
+			if alive && cell.alive {
+				age = min(cell.age + 1, AGE_MAX)
+			}
+			next_grid_state[x][y] = Cell{alive, age}
 		}
 	}
 }
@@ -237,16 +243,16 @@ handle_mouse_input :: proc(mouse_x, mouse_y: i32) {
 		cell_life = !grid_state[cell_x][cell_y].alive
 		is_set = true
 	}
-	grid_state[cell_x][cell_y].alive = cell_life
+	grid_state[cell_x][cell_y] = Cell{alive = cell_life}
 }
 
-draw_cell_run :: proc(x, y, width: i32) {
+draw_cell_run :: proc(x, y, width: i32, color: rl.Color) {
 	rect_x := x * zoom_level + offset_x
 	rect_y := y * zoom_level + offset_y
 	rect_w := width * zoom_level
 	rect_h := zoom_level
 
-	rl.DrawRectangle(rect_x, rect_y, rect_w, rect_h, rl.Color{100, 0, 0, 255})
+	rl.DrawRectangle(rect_x, rect_y, rect_w, rect_h, color)
 }
 
 // Centre the view on the focus cell
@@ -299,6 +305,7 @@ print_commands :: proc() {
 	fmt.println("8. F: Set Static_rune_render to Runes.F")
 	fmt.println("9. R: Set Static_rune_render to Runes.R")
 	fmt.println("10. F1: Clear the grid")
+	fmt.println("11. G: Toggle age colours")
 	fmt.println()
 	fmt.println("Pattern Keys:")
 	for pk in PATTERN_KEYS {
@@ -371,6 +378,9 @@ handle_input :: proc() {
 	}
 	if rl.IsKeyPressed(.F1) {
 		Clear()
+	}
+	if rl.IsKeyPressed(.G) {
+		show_age_colors = !show_age_colors
 	}
 
 	// Handle Mouse Input
