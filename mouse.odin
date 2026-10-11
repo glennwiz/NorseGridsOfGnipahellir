@@ -18,10 +18,10 @@ handle_mouse_input :: proc(mouse_x, mouse_y: i32) {
 	// On the first cell of a drag, decide whether we are drawing or erasing
 	// based on the cell under the cursor, then keep that for the whole drag.
 	if !is_set {
-		cell_life = !grid.cells[cell_x][cell_y].alive
+		cell_life = !grid[cell_x][cell_y].alive
 		is_set = true
 	}
-	grid.cells[cell_x][cell_y] = Cell {
+	grid[cell_x][cell_y] = Cell {
 		alive = cell_life,
 	}
 }

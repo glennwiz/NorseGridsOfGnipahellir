@@ -18,69 +18,69 @@ get_rune_f :: proc() {
 	//     o
 	//     o
 	//X     Y
-	grid.cells[153][115] = Cell {
+	grid[153][115] = Cell {
 		alive = true,
 	}
-	grid.cells[153][116] = Cell {
+	grid[153][116] = Cell {
 		alive = true,
 	}
-	grid.cells[153][117] = Cell {
+	grid[153][117] = Cell {
 		alive = true,
 	}
-	grid.cells[153][118] = Cell {
+	grid[153][118] = Cell {
 		alive = true,
 	}
-	grid.cells[153][119] = Cell {
+	grid[153][119] = Cell {
 		alive = true,
 	}
-	grid.cells[153][120] = Cell {
+	grid[153][120] = Cell {
 		alive = true,
 	}
-	grid.cells[153][121] = Cell {
+	grid[153][121] = Cell {
 		alive = true,
 	}
-	grid.cells[153][122] = Cell {
+	grid[153][122] = Cell {
 		alive = true,
 	}
-	grid.cells[153][123] = Cell {
+	grid[153][123] = Cell {
 		alive = true,
 	}
-	grid.cells[153][124] = Cell {
+	grid[153][124] = Cell {
 		alive = true,
 	}
-	grid.cells[153][125] = Cell {
-		alive = true,
-	}
-
-	grid.cells[156][115] = Cell {
-		alive = true,
-	}
-	grid.cells[155][116] = Cell {
-		alive = true,
-	}
-	grid.cells[154][117] = Cell {
-		alive = true,
-	}
-	grid.cells[153][118] = Cell {
+	grid[153][125] = Cell {
 		alive = true,
 	}
 
-	grid.cells[159][115] = Cell {
+	grid[156][115] = Cell {
 		alive = true,
 	}
-	grid.cells[158][116] = Cell {
+	grid[155][116] = Cell {
 		alive = true,
 	}
-	grid.cells[157][117] = Cell {
+	grid[154][117] = Cell {
 		alive = true,
 	}
-	grid.cells[154][120] = Cell {
+	grid[153][118] = Cell {
 		alive = true,
 	}
-	grid.cells[155][119] = Cell {
+
+	grid[159][115] = Cell {
 		alive = true,
 	}
-	grid.cells[156][118] = Cell {
+	grid[158][116] = Cell {
+		alive = true,
+	}
+	grid[157][117] = Cell {
+		alive = true,
+	}
+	grid[154][120] = Cell {
+		alive = true,
+	}
+	grid[155][119] = Cell {
+		alive = true,
+	}
+	grid[156][118] = Cell {
 		alive = true,
 	}
 
@@ -101,57 +101,57 @@ get_rune_r :: proc() {
 	//     o       o
 	//     o         o
 
-	grid.cells[154][115] = Cell {
+	grid[154][115] = Cell {
 		alive = true,
 	}
-	grid.cells[154][116] = Cell {
+	grid[154][116] = Cell {
 		alive = true,
-	}; grid.cells[155][116] = Cell {
-		alive = true,
-	}
-	grid.cells[154][117] = Cell {
-		alive = true,
-	}; grid.cells[156][117] = Cell {
+	}; grid[155][116] = Cell {
 		alive = true,
 	}
-	grid.cells[154][119] = Cell {
+	grid[154][117] = Cell {
 		alive = true,
-	}; grid.cells[157][118] = Cell {
-		alive = true,
-	}
-	grid.cells[154][120] = Cell {
-		alive = true,
-	}; grid.cells[158][119] = Cell {
+	}; grid[156][117] = Cell {
 		alive = true,
 	}
-	grid.cells[154][118] = Cell {
+	grid[154][119] = Cell {
 		alive = true,
-	}; grid.cells[157][120] = Cell {
-		alive = true,
-	}
-	grid.cells[154][121] = Cell {
-		alive = true,
-	}; grid.cells[156][121] = Cell {
+	}; grid[157][118] = Cell {
 		alive = true,
 	}
-	grid.cells[154][122] = Cell {
+	grid[154][120] = Cell {
 		alive = true,
-	}; grid.cells[155][122] = Cell {
-		alive = true,
-	}
-	grid.cells[154][123] = Cell {
-		alive = true,
-	}; grid.cells[156][123] = Cell {
+	}; grid[158][119] = Cell {
 		alive = true,
 	}
-	grid.cells[154][124] = Cell {
+	grid[154][118] = Cell {
 		alive = true,
-	}; grid.cells[157][124] = Cell {
+	}; grid[157][120] = Cell {
 		alive = true,
 	}
-	grid.cells[154][125] = Cell {
+	grid[154][121] = Cell {
 		alive = true,
-	}; grid.cells[158][125] = Cell {
+	}; grid[156][121] = Cell {
+		alive = true,
+	}
+	grid[154][122] = Cell {
+		alive = true,
+	}; grid[155][122] = Cell {
+		alive = true,
+	}
+	grid[154][123] = Cell {
+		alive = true,
+	}; grid[156][123] = Cell {
+		alive = true,
+	}
+	grid[154][124] = Cell {
+		alive = true,
+	}; grid[157][124] = Cell {
+		alive = true,
+	}
+	grid[154][125] = Cell {
+		alive = true,
+	}; grid[158][125] = Cell {
 		alive = true,
 	}
 }
@@ -176,50 +176,50 @@ get_rune_o :: proc() {
 	ox :: RUNE_CENTER_X
 	oy :: RUNE_CENTER_Y
 
-	grid.cells[ox + 0][oy - 5] = Cell {
+	grid[ox + 0][oy - 5] = Cell {
 		alive = true,
 	}
-	grid.cells[ox - 1][oy - 4] = Cell {
+	grid[ox - 1][oy - 4] = Cell {
 		alive = true,
-	}; grid.cells[ox + 1][oy - 4] = Cell {
-		alive = true,
-	}
-	grid.cells[ox - 2][oy - 3] = Cell {
-		alive = true,
-	}; grid.cells[ox + 2][oy - 3] = Cell {
+	}; grid[ox + 1][oy - 4] = Cell {
 		alive = true,
 	}
-	grid.cells[ox - 3][oy - 2] = Cell {
+	grid[ox - 2][oy - 3] = Cell {
 		alive = true,
-	}; grid.cells[ox + 3][oy - 2] = Cell {
-		alive = true,
-	}
-	grid.cells[ox - 2][oy - 1] = Cell {
-		alive = true,
-	}; grid.cells[ox + 2][oy - 1] = Cell {
+	}; grid[ox + 2][oy - 3] = Cell {
 		alive = true,
 	}
-	grid.cells[ox - 1][oy + 0] = Cell {
+	grid[ox - 3][oy - 2] = Cell {
 		alive = true,
-	}; grid.cells[ox + 1][oy + 0] = Cell {
-		alive = true,
-	}
-	grid.cells[ox + 0][oy + 1] = Cell {
+	}; grid[ox + 3][oy - 2] = Cell {
 		alive = true,
 	}
-	grid.cells[ox - 1][oy + 2] = Cell {
+	grid[ox - 2][oy - 1] = Cell {
 		alive = true,
-	}; grid.cells[ox + 1][oy + 2] = Cell {
-		alive = true,
-	}
-	grid.cells[ox - 2][oy + 3] = Cell {
-		alive = true,
-	}; grid.cells[ox + 2][oy + 3] = Cell {
+	}; grid[ox + 2][oy - 1] = Cell {
 		alive = true,
 	}
-	grid.cells[ox - 3][oy + 4] = Cell {
+	grid[ox - 1][oy + 0] = Cell {
 		alive = true,
-	}; grid.cells[ox + 3][oy + 4] = Cell {
+	}; grid[ox + 1][oy + 0] = Cell {
+		alive = true,
+	}
+	grid[ox + 0][oy + 1] = Cell {
+		alive = true,
+	}
+	grid[ox - 1][oy + 2] = Cell {
+		alive = true,
+	}; grid[ox + 1][oy + 2] = Cell {
+		alive = true,
+	}
+	grid[ox - 2][oy + 3] = Cell {
+		alive = true,
+	}; grid[ox + 2][oy + 3] = Cell {
+		alive = true,
+	}
+	grid[ox - 3][oy + 4] = Cell {
+		alive = true,
+	}; grid[ox + 3][oy + 4] = Cell {
 		alive = true,
 	}
 

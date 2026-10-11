@@ -83,7 +83,7 @@ place_rle :: proc(rle: string, dx: i32 = 0, dy: i32 = 0) {
 		if x < 0 || x >= NUM_CELLS_X || y < 0 || y >= NUM_CELLS_Y {
 			continue // off the edge of the grid
 		}
-		grid.cells[x][y] = Cell {
+		grid[x][y] = Cell {
 			alive = true,
 		}
 	}

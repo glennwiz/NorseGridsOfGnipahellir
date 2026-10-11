@@ -4,39 +4,31 @@ import "core:fmt"
 import rl "vendor:raylib"
 
 TITLE :: "Gnipahellir"
-WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
+WINDOW_WIDTH, WINDOW_HEIGHT :: 500, 500
 TARGET_FPS :: 60
-CELL_SIZE :: 1
 
-NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
-NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
+NUM_CELLS_X :: WINDOW_WIDTH
+NUM_CELLS_Y :: WINDOW_HEIGHT
 
 GRID_STATE :: [NUM_CELLS_X][NUM_CELLS_Y]Cell
 
 ZOOM_MIN :: 1
 ZOOM_MAX :: 60
 GRID_LINES_MIN_ZOOM :: 6
-PAN_SPEED :: 10
 
 cell_life: bool
 is_set: bool
 zoom_level: i32 = 20
 sim_running: bool
 
-sim_speed: f64 = 1 // generation per sec
+sim_speed: f32 = 1
 SIM_SPEED_MIN :: 1
 SIM_SPEED_MAX :: 32
 
-time_since_step: f64 // seconds passed since the last generation
+delta_time: f32
 
-Grid :: struct {
-	cells:      GRID_STATE,
-	generation: int,
-}
-
-grid: Grid // the live grid, drawn and edited
-buffer_grid: GRID_STATE // next generation is built here, then copied into grid
-// pixels per frame for the arrow keys
+grid: GRID_STATE
+buffer_grid: GRID_STATE
 
 Cell :: struct {
 	alive: bool,
@@ -64,7 +56,6 @@ main :: proc() {
 
 	setup()
 
-
 	for !rl.WindowShouldClose() {
 
 		handle_input()
@@ -72,29 +63,22 @@ main :: proc() {
 		draw_loop()
 
 		if sim_running {
-			run_sim()
+			delta_time += rl.GetFrameTime()
+			if delta_time >= 1.0 / sim_speed {
+
+				run_conways_rules()
+
+				delta_time = 0
+			}
 		}
 	}
 }
 
-run_sim :: proc() {
-	time_since_step += f64(rl.GetFrameTime()) //deltatime
-
-	if time_since_step >= 1.0 / f64(sim_speed) {
-
-		run_next_generation(&grid.cells, &buffer_grid)
-		grid.cells = buffer_grid
-		grid.generation += 1
-
-		time_since_step = 0
-	}
-}
-
-run_next_generation :: proc(src, dst: ^GRID_STATE) {
+run_conways_rules :: proc() {
 	for x: i32 = 1; x < NUM_CELLS_X - 1; x += 1 {
 		for y: i32 = 1; y < NUM_CELLS_Y - 1; y += 1 {
-			cell := src[x][y]
-			neighbours := count_live_neighbours(src, x, y)
+			cell := grid[x][y]
+			neighbours := count_live_neighbours(&grid, x, y)
 
 			alive := neighbours == 3 || (cell.alive && neighbours == 2)
 			age: u8 = 0
@@ -103,9 +87,11 @@ run_next_generation :: proc(src, dst: ^GRID_STATE) {
 				age = min(cell.age + 1, AGE_MAX)
 			}
 
-			dst[x][y] = Cell{alive, age}
+			buffer_grid[x][y] = Cell{alive, age}
 		}
 	}
+
+	grid = buffer_grid
 }
 
 //(-1,-1), (0, -1), (1,-1)

@@ -2,6 +2,9 @@ package gnipahellir
 
 import "core:fmt"
 import rl "vendor:raylib"
+
+PAN_SPEED :: 10
+
 handle_input :: proc() {
 
 	// Camera

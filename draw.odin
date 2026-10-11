@@ -28,10 +28,10 @@ draw_cells :: proc() {
 
 		// x == NUM_CELLS_X is one past the row, so the last run gets flushed
 		for x: i32 = 0; x <= NUM_CELLS_X; x += 1 {
-			alive := x < NUM_CELLS_X && grid.cells[x][y].alive
+			alive := x < NUM_CELLS_X && grid[x][y].alive
 			color: rl.Color
 			if alive {
-				color = cell_color(grid.cells[x][y])
+				color = cell_color(grid[x][y])
 			}
 
 			if batch_start_x != -1 && (!alive || color != batch_color) {
@@ -81,9 +81,7 @@ clear :: proc() { 	// Clear the grid and reset all related variables
 draw_loop :: proc() {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.BLACK)
-
 	draw_background()
-
 	draw_cells()
 	draw_grid()
 	rl.EndDrawing()
