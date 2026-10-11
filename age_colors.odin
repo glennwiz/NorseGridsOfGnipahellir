@@ -11,12 +11,12 @@ show_age_colors := true
 
 // Newborns are hot and bright, survivors cool down: gliders and chaos stay
 // yellow/orange, oscillators flicker, still lifes settle into blue.
-Age_Stop :: struct {
+Age_Color :: struct {
 	age:   int,
 	color: rl.Color,
 }
 
-AGE_STOPS :: [?]Age_Stop {
+AGE_GRADIENT :: [?]Age_Color {
 	{0, {255, 255, 210, 255}}, // white-yellow
 	{2, {255, 220, 0, 255}}, // yellow
 	{6, {255, 120, 0, 255}}, // orange
@@ -27,16 +27,14 @@ AGE_STOPS :: [?]Age_Stop {
 
 age_palette: [AGE_MAX + 1]rl.Color
 
-// Fill age_palette by blending between the AGE_STOPS
+// Fill age_palette by blending along AGE_GRADIENT
 build_age_palette :: proc() {
-	stops := AGE_STOPS
-	for i in 0 ..< len(stops) - 1 {
-		a, b := stops[i], stops[i + 1]
+	grad := AGE_GRADIENT
+	for i in 0 ..< len(grad) - 1 {
+		a, b := grad[i], grad[i + 1]
 		for age in a.age ..= b.age {
 			t := f32(age - a.age) / f32(b.age - a.age)
-			for c in 0 ..< 4 {
-				age_palette[age][c] = u8(f32(a.color[c]) + (f32(b.color[c]) - f32(a.color[c])) * t)
-			}
+			age_palette[age] = rl.ColorLerp(a.color, b.color, t)
 		}
 	}
 }
