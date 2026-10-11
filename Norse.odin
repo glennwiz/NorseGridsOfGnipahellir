@@ -17,7 +17,6 @@ ZOOM_MAX :: 60
 GRID_LINES_MIN_ZOOM :: 6 // below this the lines would hide the cells
 PAN_SPEED :: 10 // pixels per frame for the arrow keys
 
-
 cell_life: bool
 is_set: bool
 zoom_level: i32 = 20 // pixels per cell
@@ -48,8 +47,7 @@ Runes :: enum {
 	Empty,
 }
 
-Static_rune_render := Runes.O
-
+Static_rune_render := Runes.Empty
 
 offset_x: i32
 offset_y: i32
@@ -61,9 +59,8 @@ main :: proc() {
 
 	rl.SetTargetFPS(TARGET_FPS)
 
-	build_age_palette()
-	print_commands()
-	update_camera()
+	setup()
+
 
 	for !rl.WindowShouldClose() {
 
@@ -72,10 +69,7 @@ main :: proc() {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.BLACK)
 
-		draw_background()
-		draw_cells()
-		draw_grid()
-
+		draw_loop()
 		rl.EndDrawing()
 
 		if sim_running {
@@ -102,118 +96,33 @@ run_sim :: proc(dt: f32) {
 run_next_generation :: proc(src, dst: ^GRID_STATE) {
 	for x: i32 = 1; x < NUM_CELLS_X - 1; x += 1 {
 		for y: i32 = 1; y < NUM_CELLS_Y - 1; y += 1 {
-			/*
-            Any live cell with two or three live neighbours survives too the next generation.
-            Any dead cell with exactly three live neighbours becomes a live cell.
-            */
-			live_neighbours := count_live_neighbours(src, x, y)
 			cell := src[x][y]
-			is_still_alive := get_cell_state(cell.alive, live_neighbours)
+			neighbours := count_live_neighbours(src, x, y)
 
-			// Survivors get one generation older, newborns start at
+			alive := neighbours == 3 || (cell.alive && neighbours == 2)
 			age: u8 = 0
-			if is_still_alive && cell.alive {
+
+			if alive && cell.alive {
 				age = min(cell.age + 1, AGE_MAX)
 			}
-			dst[x][y] = Cell{is_still_alive, age}
+
+			dst[x][y] = Cell{alive, age}
 		}
 	}
 }
 
-count_live_neighbours := proc(grid: ^GRID_STATE, x, y: i32) -> i32 {
-	live_neighbours: i32 = 0
-	for nx := x - 1; nx <= x + 1; nx += 1 {
-		for ny := y - 1; ny <= y + 1; ny += 1 {
-			if !(nx == x && ny == y) && grid[nx][ny].alive {
-				live_neighbours += 1
+count_live_neighbours :: proc(grid: ^GRID_STATE, x, y: i32) -> i32 {
+	count: i32 = 0
+
+	for dx: i32 = -1; dx <= 1; dx += 1 {
+		for dy: i32 = -1; dy <= 1; dy += 1 {
+			if (dx != 0 || dy != 0) && grid[x + dx][y + dy].alive {
+				count += 1
 			}
 		}
 	}
 
-	return live_neighbours
-}
-
-get_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
-	if is_alive {
-		if live_neighbours == 2 || live_neighbours == 3 {
-			return true
-		}
-		return false
-	} else {
-		if live_neighbours == 3 {
-			return true
-		}
-		return false
-	}
-}
-
-handle_mouse_input :: proc(mouse_x, mouse_y: i32) {
-	// Check if the mouse is outside the grid (before dividing, since
-	// integer division rounds -0.5 cells to 0)
-	if mouse_x < offset_x || mouse_y < offset_y {
-		return
-	}
-
-	// Screen pixel -> world cell (inverse of draw_cell_run).
-	cell_x := (mouse_x - offset_x) / zoom_level
-	cell_y := (mouse_y - offset_y) / zoom_level
-	if cell_x >= NUM_CELLS_X || cell_y >= NUM_CELLS_Y {
-		return
-	}
-
-	// On the first cell of a drag, decide whether we are drawing or erasing
-	// based on the cell under the cursor, then keep that for the whole drag.
-	if !is_set {
-		cell_life = !board.cells[cell_x][cell_y].alive
-		is_set = true
-	}
-	board.cells[cell_x][cell_y] = Cell {
-		alive = cell_life,
-	}
-}
-
-draw_cell_run :: proc(x, y, width: i32, color: rl.Color) {
-	rect_x := x * zoom_level + offset_x
-	rect_y := y * zoom_level + offset_y
-	rect_w := width * zoom_level
-	rect_h := zoom_level
-
-	rl.DrawRectangle(rect_x, rect_y, rect_w, rect_h, color)
-}
-
-// Centre the view on the focus cell
-update_camera :: proc() {
-	offset_x = WINDOW_WIDTH / 2 - RUNE_CENTER_X * zoom_level
-	offset_y = WINDOW_HEIGHT / 2 - RUNE_CENTER_Y * zoom_level
-}
-
-// Zoom in (steps > 0) or out, keeping the world point under the
-// screen pixel (anchor_x, anchor_y) in place.
-zoom_at :: proc(steps: i32, anchor_x, anchor_y: i32) {
-	// Step size grows with the zoom so the wheel feels even at every level
-	new_zoom := clamp(zoom_level + steps * max(1, zoom_level / 5), ZOOM_MIN, ZOOM_MAX)
-	if new_zoom == zoom_level {
-		return
-	}
-
-	world_x := f32(anchor_x - offset_x) / f32(zoom_level)
-	world_y := f32(anchor_y - offset_y) / f32(zoom_level)
-	zoom_level = new_zoom
-	offset_x = anchor_x - i32(world_x * f32(zoom_level))
-	offset_y = anchor_y - i32(world_y * f32(zoom_level))
-	clamp_camera()
-}
-
-pan :: proc(dx, dy: i32) {
-	offset_x += dx
-	offset_y += dy
-	clamp_camera()
-}
-
-// Keep the screen centre over the board so it can't be panned out of sight
-clamp_camera :: proc() {
-	offset_x = clamp(offset_x, WINDOW_WIDTH / 2 - NUM_CELLS_X * zoom_level, WINDOW_WIDTH / 2)
-	offset_y = clamp(offset_y, WINDOW_HEIGHT / 2 - NUM_CELLS_Y * zoom_level, WINDOW_HEIGHT / 2)
+	return count
 }
 
 print_commands :: proc() {
@@ -245,140 +154,8 @@ print_commands :: proc() {
 	fmt.println("Right mouse button drag: Pan the camera")
 }
 
-handle_input :: proc() {
-
-	// Camera
-	if rl.IsKeyPressed(.X) {
-		zoom_at(1, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2)
-	}
-	if rl.IsKeyPressed(.Z) {
-		zoom_at(-1, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2)
-	}
-	if wheel := rl.GetMouseWheelMove(); wheel != 0 {
-		zoom_at(wheel > 0 ? 1 : -1, rl.GetMouseX(), rl.GetMouseY())
-	}
-	if rl.IsMouseButtonDown(.RIGHT) {
-		delta := rl.GetMouseDelta()
-		pan(i32(delta.x), i32(delta.y))
-	}
-	if rl.IsKeyDown(.LEFT) {pan(PAN_SPEED, 0)}
-	if rl.IsKeyDown(.RIGHT) {pan(-PAN_SPEED, 0)}
-	if rl.IsKeyDown(.UP) {pan(0, PAN_SPEED)}
-	if rl.IsKeyDown(.DOWN) {pan(0, -PAN_SPEED)}
-	if rl.IsKeyPressed(.C) {
-		update_camera()
-	}
-
-	if rl.IsKeyPressed(.SPACE) {
-		sim_running = !sim_running
-	}
-	if rl.IsKeyPressed(.COMMA) {
-		sim_speed = min(sim_speed * 2, SIM_SPEED_MAX)
-		fmt.printfln("speed: %v generations/sec", sim_speed)
-	}
-	if rl.IsKeyPressed(.PERIOD) {
-		sim_speed = max(sim_speed / 2, SIM_SPEED_MIN)
-		fmt.printfln("speed: %v generations/sec", sim_speed)
-	}
-	if rl.IsKeyPressed(.O) {
-		clear()
-		Static_rune_render = Runes.O
-	}
-	if rl.IsKeyPressed(.F) {
-		clear()
-		Static_rune_render = Runes.F
-	}
-	if rl.IsKeyPressed(.R) {
-		clear()
-		Static_rune_render = Runes.R
-	}
-	for pk in PATTERN_KEYS {
-		if rl.IsKeyPressed(pk.key) {
-			clear()
-			place_pattern(pk.key)
-		}
-	}
-	if rl.IsKeyPressed(.F1) {
-		clear()
-	}
-	if rl.IsKeyPressed(.G) {
-		show_age_colors = !show_age_colors
-	}
-
-	// Handle Mouse Input
-	if rl.IsMouseButtonDown(.LEFT) {
-		handle_mouse_input(rl.GetMouseX(), rl.GetMouseY())
-	}
-	if rl.IsMouseButtonReleased(.LEFT) {
-		is_set = false
-	}
-
-}
-
-draw_cells :: proc() {
-	#partial switch Static_rune_render {
-	case .O:
-		get_rune_o()
-	case .F:
-		get_rune_f()
-	case .R:
-		get_rune_r()
-	}
-
-	// Draw the cells, batching each row into runs of the same colour
-	for y: i32 = 0; y < NUM_CELLS_Y; y += 1 {
-
-		batch_start_x: i32 = -1
-		batch_color: rl.Color
-
-		// x == NUM_CELLS_X is one past the row, so the last run gets flushed
-		for x: i32 = 0; x <= NUM_CELLS_X; x += 1 {
-			alive := x < NUM_CELLS_X && board.cells[x][y].alive
-			color: rl.Color
-			if alive {
-				color = cell_color(board.cells[x][y])
-			}
-
-			if batch_start_x != -1 && (!alive || color != batch_color) {
-				draw_cell_run(batch_start_x, y, x - batch_start_x, batch_color)
-				batch_start_x = -1
-			}
-			if alive && batch_start_x == -1 {
-				batch_start_x = x
-				batch_color = color
-			}
-		}
-	}
-}
-
-draw_grid :: proc() {
-	if zoom_level < GRID_LINES_MIN_ZOOM {
-		return // the lines would hide the cells
-	}
-	for x := offset_x %% zoom_level; x < WINDOW_WIDTH; x += zoom_level {
-		rl.DrawLine(x, 0, x, WINDOW_HEIGHT, rl.BLACK)
-	}
-	for y := offset_y %% zoom_level; y < WINDOW_HEIGHT; y += zoom_level {
-		rl.DrawLine(0, y, WINDOW_WIDTH, y, rl.BLACK)
-	}
-}
-
-draw_background :: proc() {
-	rl.DrawRectangleGradientH(
-		0,
-		0,
-		WINDOW_WIDTH,
-		WINDOW_HEIGHT,
-		rl.Color{0, 0, 0, 255},
-		rl.Color{60, 60, 60, 255},
-	)
-}
-
-clear :: proc() { 	// Clear the grid and reset all related variables
-	Static_rune_render = Runes.Empty
-	board = {}
-
-	sim_running = false
-
-	update_camera() // recentre the view
+setup :: proc() {
+	build_age_palette()
+	print_commands()
+	update_camera()
 }
