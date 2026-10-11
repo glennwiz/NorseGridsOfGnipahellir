@@ -23,14 +23,11 @@ is_set: bool
 zoom_level: i32 = 20 // pixels per cell
 
 sim_running: bool
-sim_speed: f64 = 30 // generations per second, COMMA / PERIOD double or halve it
+sim_speed: f64 = 1 // generations per second, COMMA / PERIOD double or halve it
 SIM_SPEED_MIN :: 1
-SIM_SPEED_MAX :: 1 << 20 // far past any CPU, so the top speed is whatever the budget allows
-SIM_BUDGET :: 0.75 // share of each frame the simulation may use, the rest is for drawing
-sim_debt: f64 // generations owed but not yet run, carried between frames
-REVERSE_SPEED :: 8 // frames per generation when running backwards (7.5 generations/sec)
+SIM_SPEED_MAX :: 32 // far past any CPU, so the top speed is whatever the budget allows
+time_since_step: f64 // seconds passed since the last generation
 
-// One moment of the simulation. Earlier ones are kept in history (see history.odin).
 Board :: struct {
 	cells:      GRID_STATE,
 	generation: int,
@@ -64,7 +61,6 @@ main :: proc() {
 
 	rl.SetTargetFPS(TARGET_FPS)
 
-	reverse_counter: i32 = 0
 	build_age_palette()
 	print_commands()
 	update_camera()
@@ -82,42 +78,28 @@ main :: proc() {
 
 		rl.EndDrawing()
 
-		// Tap BACKSPACE for one generation back, hold it to keep going
-		if rl.IsKeyPressed(.BACKSPACE) {
-			sim_running = false
-			reverse_counter = 0
-		}
-		if rl.IsKeyDown(.BACKSPACE) {
-			if reverse_counter % REVERSE_SPEED == 0 {
-				step_back()
-			}
-			reverse_counter += 1
-		} else if sim_running {
+		if sim_running {
 			run_sim(rl.GetFrameTime())
 		}
 	}
 }
 
-// Run the generations sim_speed asks for this frame, but stop once the frame's
-// time budget is spent so drawing and input stay smooth. Whatever doesn't fit
-// is dropped, so at high speeds this runs as fast as the CPU can go.
+step :: proc() {
+	run_next_generation(&board.cells, &scratch)
+	board.cells = scratch
+	board.generation += 1
+}
+
 run_sim :: proc(dt: f32) {
-	sim_debt += f64(dt) * sim_speed
-	deadline := rl.GetTime() + SIM_BUDGET / TARGET_FPS
-	for sim_debt >= 1 {
+	time_since_step += f64(dt)
+
+	if time_since_step >= 1.0 / f64(sim_speed) {
 		step()
-		sim_debt -= 1
-		if rl.GetTime() > deadline {
-			sim_debt = 0
-			break
-		}
+		time_since_step = 0
 	}
 }
 
-
 run_next_generation :: proc(src, dst: ^GRID_STATE) {
-	// Skip the outermost ring of cells so every neighbour is inside the grid.
-	// The ring is never written, so it stays dead and acts as the board's edge.
 	for x: i32 = 1; x < NUM_CELLS_X - 1; x += 1 {
 		for y: i32 = 1; y < NUM_CELLS_Y - 1; y += 1 {
 			/*
@@ -126,25 +108,18 @@ run_next_generation :: proc(src, dst: ^GRID_STATE) {
             */
 			live_neighbours := count_live_neighbours(src, x, y)
 			cell := src[x][y]
-			alive := update_cell_state(cell.alive, live_neighbours)
+			is_still_alive := get_cell_state(cell.alive, live_neighbours)
 
-			// Survivors get one generation older, newborns start at 0
+			// Survivors get one generation older, newborns start at
 			age: u8 = 0
-			if alive && cell.alive {
+			if is_still_alive && cell.alive {
 				age = min(cell.age + 1, AGE_MAX)
 			}
-			dst[x][y] = Cell{alive, age}
+			dst[x][y] = Cell{is_still_alive, age}
 		}
 	}
 }
 
-/*
-    function count_live_neighbours calculates the number of live neighbors around a cell in grid.
-    It uses nested loops to examine a 3x3 cell neighborhood centered at (x, y).
-    (x, y) must not be on the edge of the grid, see run_next_generation.
-    The function returns the count of live neighbors for the specified cell.
-    The grid is passed by pointer to avoid copying the whole (large) grid on every call.
-*/
 count_live_neighbours := proc(grid: ^GRID_STATE, x, y: i32) -> i32 {
 	live_neighbours: i32 = 0
 	for nx := x - 1; nx <= x + 1; nx += 1 {
@@ -158,7 +133,7 @@ count_live_neighbours := proc(grid: ^GRID_STATE, x, y: i32) -> i32 {
 	return live_neighbours
 }
 
-update_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
+get_cell_state := proc(is_alive: bool, live_neighbours: i32) -> bool {
 	if is_alive {
 		if live_neighbours == 2 || live_neighbours == 3 {
 			return true
@@ -257,7 +232,6 @@ print_commands :: proc() {
 	fmt.println("9. R: Set Static_rune_render to Runes.R")
 	fmt.println("10. F1: Clear the grid")
 	fmt.println("11. G: Toggle age colours")
-	fmt.println("12. BACKSPACE: Step backwards, hold to keep going (pauses the simulation)")
 	fmt.println()
 	fmt.println("Pattern Keys:")
 	for pk in PATTERN_KEYS {
@@ -403,7 +377,6 @@ draw_background :: proc() {
 clear :: proc() { 	// Clear the grid and reset all related variables
 	Static_rune_render = Runes.Empty
 	board = {}
-	clear_history()
 
 	sim_running = false
 
