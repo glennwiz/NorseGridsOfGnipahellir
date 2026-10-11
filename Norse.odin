@@ -4,7 +4,7 @@ import "core:fmt"
 import rl "vendor:raylib"
 
 TITLE :: "Gnipahellir"
-WINDOW_WIDTH, WINDOW_HEIGHT :: 1024, 768
+WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
 TARGET_FPS :: 60
 CELL_SIZE :: 1
 
@@ -66,14 +66,10 @@ main :: proc() {
 
 		handle_input()
 
-		rl.BeginDrawing()
-		rl.ClearBackground(rl.BLACK)
-
 		draw_loop()
-		rl.EndDrawing()
 
 		if sim_running {
-			run_sim(rl.GetFrameTime())
+			run_sim()
 		}
 	}
 }
@@ -84,8 +80,8 @@ step :: proc() {
 	board.generation += 1
 }
 
-run_sim :: proc(dt: f32) {
-	time_since_step += f64(dt)
+run_sim :: proc() {
+	time_since_step += f64(rl.GetFrameTime()) //deltatime
 
 	if time_since_step >= 1.0 / f64(sim_speed) {
 		step()
@@ -111,6 +107,9 @@ run_next_generation :: proc(src, dst: ^GRID_STATE) {
 	}
 }
 
+//(-1,-1), (0, -1), (1,-1)
+//(-1, 0), (0,  0), (1, 0)
+//(-1, 1), (0,  1), (1, 1)
 count_live_neighbours :: proc(grid: ^GRID_STATE, x, y: i32) -> i32 {
 	count: i32 = 0
 

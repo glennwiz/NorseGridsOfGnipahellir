@@ -79,9 +79,12 @@ clear :: proc() { 	// Clear the grid and reset all related variables
 }
 
 draw_loop :: proc() {
+	rl.BeginDrawing()
+	rl.ClearBackground(rl.BLACK)
+
 	draw_background()
+
 	draw_cells()
 	draw_grid()
-
-
+	rl.EndDrawing()
 }
