@@ -28,10 +28,10 @@ draw_cells :: proc() {
 
 		// x == NUM_CELLS_X is one past the row, so the last run gets flushed
 		for x: i32 = 0; x <= NUM_CELLS_X; x += 1 {
-			alive := x < NUM_CELLS_X && board.cells[x][y].alive
+			alive := x < NUM_CELLS_X && grid.cells[x][y].alive
 			color: rl.Color
 			if alive {
-				color = cell_color(board.cells[x][y])
+				color = cell_color(grid.cells[x][y])
 			}
 
 			if batch_start_x != -1 && (!alive || color != batch_color) {
@@ -71,7 +71,7 @@ draw_background :: proc() {
 
 clear :: proc() { 	// Clear the grid and reset all related variables
 	Static_rune_render = Runes.Empty
-	board = {}
+	grid = {}
 
 	sim_running = false
 

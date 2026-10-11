@@ -29,7 +29,7 @@ pan :: proc(dx, dy: i32) {
 	clamp_camera()
 }
 
-// Keep the screen centre over the board so it can't be panned out of sight
+// Keep the screen centre over the grid so it can't be panned out of sight
 clamp_camera :: proc() {
 	offset_x = clamp(offset_x, WINDOW_WIDTH / 2 - NUM_CELLS_X * zoom_level, WINDOW_WIDTH / 2)
 	offset_y = clamp(offset_y, WINDOW_HEIGHT / 2 - NUM_CELLS_Y * zoom_level, WINDOW_HEIGHT / 2)

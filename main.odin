@@ -10,30 +10,33 @@ CELL_SIZE :: 1
 
 NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
 NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
+
 GRID_STATE :: [NUM_CELLS_X][NUM_CELLS_Y]Cell
 
-ZOOM_MIN :: 1 // the whole board fits the window
+ZOOM_MIN :: 1
 ZOOM_MAX :: 60
-GRID_LINES_MIN_ZOOM :: 6 // below this the lines would hide the cells
-PAN_SPEED :: 10 // pixels per frame for the arrow keys
+GRID_LINES_MIN_ZOOM :: 6
+PAN_SPEED :: 10
 
 cell_life: bool
 is_set: bool
-zoom_level: i32 = 20 // pixels per cell
-
+zoom_level: i32 = 20
 sim_running: bool
-sim_speed: f64 = 1 // generations per second, COMMA / PERIOD double or halve it
+
+sim_speed: f64 = 1 // generation per sec
 SIM_SPEED_MIN :: 1
-SIM_SPEED_MAX :: 32 // far past any CPU, so the top speed is whatever the budget allows
+SIM_SPEED_MAX :: 32
+
 time_since_step: f64 // seconds passed since the last generation
 
-Board :: struct {
+Grid :: struct {
 	cells:      GRID_STATE,
 	generation: int,
 }
 
-board: Board // the live board, drawn and edited
-scratch: GRID_STATE // next generation is built here, then copied into board
+grid: Grid // the live grid, drawn and edited
+buffer_grid: GRID_STATE // next generation is built here, then copied into grid
+// pixels per frame for the arrow keys
 
 Cell :: struct {
 	alive: bool,
@@ -74,17 +77,15 @@ main :: proc() {
 	}
 }
 
-step :: proc() {
-	run_next_generation(&board.cells, &scratch)
-	board.cells = scratch
-	board.generation += 1
-}
-
 run_sim :: proc() {
 	time_since_step += f64(rl.GetFrameTime()) //deltatime
 
 	if time_since_step >= 1.0 / f64(sim_speed) {
-		step()
+
+		run_next_generation(&grid.cells, &buffer_grid)
+		grid.cells = buffer_grid
+		grid.generation += 1
+
 		time_since_step = 0
 	}
 }
@@ -110,12 +111,12 @@ run_next_generation :: proc(src, dst: ^GRID_STATE) {
 //(-1,-1), (0, -1), (1,-1)
 //(-1, 0), (0,  0), (1, 0)
 //(-1, 1), (0,  1), (1, 1)
-count_live_neighbours :: proc(grid: ^GRID_STATE, x, y: i32) -> i32 {
+count_live_neighbours :: proc(cells: ^GRID_STATE, x, y: i32) -> i32 {
 	count: i32 = 0
 
 	for dx: i32 = -1; dx <= 1; dx += 1 {
 		for dy: i32 = -1; dy <= 1; dy += 1 {
-			if (dx != 0 || dy != 0) && grid[x + dx][y + dy].alive {
+			if (dx != 0 || dy != 0) && cells[x + dx][y + dy].alive {
 				count += 1
 			}
 		}
