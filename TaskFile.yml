@@ -11,6 +11,15 @@ tasks:
       - echo 'Building Odin'
       - odin build .
     #silent: true
+  hashlife:
+    cmds:
+      - echo 'Running Hashlife'
+      - odin run hashlife -o:speed
+    #silent: true
+  hashlife-test:
+    cmds:
+      - odin test hashlife -o:speed
+    #silent: true
   hello:
     cmds:
       - echo 'Hello World from Task!'
