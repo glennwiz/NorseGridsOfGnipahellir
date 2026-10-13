@@ -28,12 +28,37 @@ Pattern :: struct {
 // The computer is from https://github.com/nicolasloizeau/gol-computer and
 // the Turing machine from Golly's pattern collection.
 PATTERNS := [?]Pattern {
-	{.ONE, "3-state Turing machine (Paul Rendell)", #load("patterns/turing-machine.rle", string), 6},
-	{.TWO, "8-bit programmable computer (Nicolas Loizeau)", #load("patterns/computer.mc", string), 4},
-	{.THREE, "Gosper glider gun", "24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4bobo$10bo5bo7bo$11bo3bo$12b2o!", 0},
+	{
+		.ONE,
+		"3-state Turing machine (Paul Rendell)",
+		#load("patterns/turing-machine.rle", string),
+		6,
+	},
+	{
+		.TWO,
+		"8-bit programmable computer (Nicolas Loizeau)",
+		#load("patterns/computer.mc", string),
+		4,
+	},
+	{
+		.THREE,
+		"Gosper glider gun",
+		"24bo$22bobo$12b2o6b2o12b2o$11bo3bo4b2o12b2o$2o8bo5bo3b2o$2o8bo3bob2o4bobo$10bo5bo7bo$11bo3bo$12b2o!",
+		0,
+	},
 	{.FOUR, "R-pentomino", "b2o$2o$bo!", 0},
-	{.F1, "Switchengine meets backrake (Bill Gosper)", #load("patterns/switchengine-backrake.mc", string), 4},
-	{.F2, "Two-digit hexadecimal counter (Brice Due)", #load("patterns/hexadecimal.mc", string), 12},
+	{
+		.F1,
+		"Switchengine meets backrake (Bill Gosper)",
+		#load("patterns/switchengine-backrake.mc", string),
+		4,
+	},
+	{
+		.F2,
+		"Two-digit hexadecimal counter (Brice Due)",
+		#load("patterns/hexadecimal.mc", string),
+		12,
+	},
 }
 
 pattern_name: string
@@ -266,7 +291,8 @@ fit_view :: proc() {
 	cam_x = (west + east) / 2
 	cam_y = (north + south) / 2
 	zoom = ZOOM_MAX
-	for zoom > ZOOM_MIN && ((east - west) * scale() > WINDOW_WIDTH || (south - north) * scale() > WINDOW_HEIGHT) {
+	for zoom > ZOOM_MIN &&
+	    ((east - west) * scale() > WINDOW_WIDTH || (south - north) * scale() > WINDOW_HEIGHT) {
 		zoom -= 1
 	}
 }
@@ -354,14 +380,30 @@ draw_hud :: proc() {
 		pattern_name,
 		fmt.tprintf("generation: %s", with_commas(generation)),
 		fmt.tprintf("population: %s", with_commas(u128(root.population))),
-		fmt.tprintf("step: 2^%d = %s generations, took %.1f ms", step_exp, with_commas(u128(1) << uint(step_exp)), step_ms),
-		fmt.tprintf("nodes: %s    universe: 2^%d cells wide    zoom: 2^%d", with_commas(u128(node_count)), root.level, zoom),
+		fmt.tprintf(
+			"step: 2^%d = %s generations, took %.1f ms",
+			step_exp,
+			with_commas(u128(1) << uint(step_exp)),
+			step_ms,
+		),
+		fmt.tprintf(
+			"nodes: %s    universe: 2^%d cells wide    zoom: 2^%d",
+			with_commas(u128(node_count)),
+			root.level,
+			zoom,
+		),
 		step_failed ? "out of memory, step size halved (SPACE to run)" : sim_running ? "running" : "paused (SPACE to run)",
 	}
 
 	rl.DrawRectangle(0, 0, 820, i32(len(lines)) * 20 + 12, rl.Color{0, 0, 0, 190})
 	for line, i in lines {
-		rl.DrawText(strings.clone_to_cstring(line, context.temp_allocator), 8, i32(i) * 20 + 8, 16, rl.RAYWHITE)
+		rl.DrawText(
+			strings.clone_to_cstring(line, context.temp_allocator),
+			8,
+			i32(i) * 20 + 8,
+			16,
+			rl.RAYWHITE,
+		)
 	}
 	free_all(context.temp_allocator)
 }
@@ -370,6 +412,6 @@ draw_loop :: proc() {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.BLACK)
 	draw_cells()
-	draw_hud()
+	1000; draw_hud()
 	rl.EndDrawing()
 }
